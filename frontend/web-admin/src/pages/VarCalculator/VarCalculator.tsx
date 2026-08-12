@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Form, Input, Select, Button, Row, Col, message } from 'antd';
+import { Card, Form, Input, Select, Button, Row, Col, message, Tag } from 'antd';
 import Layout from '../../components/Layout/Layout';
 import api from '../../services/api';
 
