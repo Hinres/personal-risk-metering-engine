@@ -1,0 +1,31 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..."></loading-spinner>
+
+  <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+  <block wx:elif="{{report}}">
+    <view class="header">
+      <text class="title">{{report.typeLabel}}</text>
+      <text class="tag">{{report.formatLabel}}</text>
+    </view>
+    <view class="info">
+      <view class="info-row">
+        <text class="label">报告名称</text>
+        <text class="value">{{report.report_name || report.description || '无'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">生成时间</text>
+        <text class="value">{{report.created_at_fmt}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">状态</text>
+        <text class="value">{{report.status || '完成'}}</text>
+      </view>
+    </view>
+
+    <view class="export-bar">
+      <button class="btn btn-primary" bindtap="exportPDF" loading="{{exporting}}">导出 PDF</button>
+      <button class="btn btn-secondary" bindtap="exportExcel" loading="{{exporting}}">导出 Excel</button>
+    </view>
+  </block>
+</view>

@@ -1,0 +1,18 @@
+.chart-container {
+  background: var(--bg-secondary);
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow);
+}
+
+.chart-title {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 16rpx;
+}
+
+.chart-canvas {
+  width: 100%;
+}

@@ -1,0 +1,6 @@
+<view class="error-state">
+  <view class="error-icon">⚠️</view>
+  <text class="error-title">{{title}}</text>
+  <text class="error-desc" wx:if="{{desc}}">{{desc}}</text>
+  <button class="error-btn" bindtap="onRetry">{{retryText}}</button>
+</view>

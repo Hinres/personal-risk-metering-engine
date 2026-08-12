@@ -1,0 +1,20 @@
+<view class="container">
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <loading-spinner wx:if="{{loading && !refreshing}}" text="加载中..."></loading-spinner>
+
+    <error-state wx:if="{{error && !loading}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry"></error-state>
+
+    <empty-state wx:if="{{!loading && !error && !alerts.length}}" icon="🔔" title="暂无预警" desc="当监控规则触发阈值时，预警会出现在这里" buttonText="去创建规则" buttonUrl="/pages/monitor/create/create"></empty-state>
+
+    <view wx:for="{{alerts}}" wx:key="id" class="card">
+      <view class="card-header">
+        <text class="title" style="color:{{item.severityColor}}">{{item.title || item.monitor_name}}</text>
+        <text class="badge" style="background:{{item.severityColor}}">{{item.severityLabel}}</text>
+      </view>
+      <view class="card-body">
+        <text class="message" wx:if="{{item.message}}">{{item.message}}</text>
+        <text class="date">{{item.triggeredAtFmt}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>

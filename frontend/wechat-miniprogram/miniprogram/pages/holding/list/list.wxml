@@ -1,0 +1,46 @@
+<view class="container">
+  <view class="header">
+    <text class="title">持仓明细</text>
+    <button class="btn-add" bindtap="goToAdd">+ 添加</button>
+  </view>
+
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <block wx:if="{{loading && !refreshing}}">
+      <loading-spinner type="fullscreen" text="加载中..." />
+    </block>
+    <block wx:elif="{{error}}">
+      <error-state title="加载失败" desc="{{errorMessage}}" retry-text="重新加载" bind:retry="onRetry" />
+    </block>
+    <block wx:elif="{{!holdings.length}}">
+      <empty-state icon="📈" title="暂无持仓" desc="当前组合还没有任何持仓" button-text="添加持仓" button-url="/pages/holding/add/add?portfolioId={{portfolioId}}" />
+    </block>
+    <block wx:else>
+      <view wx:for="{{holdings}}" wx:key="holding_id" class="card">
+        <view class="card-header">
+          <text class="symbol">{{item.symbol}}</text>
+          <text class="name">{{item.name}}</text>
+        </view>
+        <view class="card-body">
+          <view class="metric">
+            <text class="label">市值</text>
+            <text class="value">{{item.market_value_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">权重</text>
+            <text class="value">{{item.weight_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">盈亏</text>
+            <text class="value" style="color:{{item.pnl_color}}">{{item.pnl}}</text>
+          </view>
+        </view>
+        <view class="card-actions">
+          <button class="action-btn" bindtap="goToEdit" data-id="{{item.holding_id}}">编辑</button>
+          <button class="action-btn delete" bindtap="deleteHolding" data-id="{{item.holding_id}}">删除</button>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+
+  <button class="fab" bindtap="goToAdd">+</button>
+</view>

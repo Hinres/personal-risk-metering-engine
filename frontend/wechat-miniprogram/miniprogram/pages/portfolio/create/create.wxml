@@ -1,0 +1,19 @@
+<view class="container">
+  <view class="form">
+    <view class="form-item">
+      <text class="label">组合名称</text>
+      <input class="input" placeholder="输入组合名称" value="{{name}}" bindinput="onInputName" maxlength="100" />
+    </view>
+    <view class="form-item">
+      <text class="label">组合类型</text>
+      <picker mode="selector" range="{{types}}" range-key="label" value="{{typeIndex}}" bindchange="onTypeChange">
+        <view class="picker">{{types[typeIndex].label}}</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="label">描述</text>
+      <textarea class="textarea" placeholder="可选描述" value="{{description}}" bindinput="onInputDescription" maxlength="500" />
+    </view>
+    <button class="btn-submit" bindtap="createPortfolio" loading="{{loading}}">创建</button>
+  </view>
+</view>

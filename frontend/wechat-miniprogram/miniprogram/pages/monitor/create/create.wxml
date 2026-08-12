@@ -1,0 +1,62 @@
+<view class="container">
+  <view class="header" wx:if="{{!isEdit}}">
+    <text class="header-title">新建监控规则</text>
+    <text class="header-subtitle">当指标触发阈值时，系统将自动发送预警</text>
+  </view>
+  <view class="header" wx:else>
+    <text class="header-title">编辑监控规则</text>
+  </view>
+
+  <view wx:if="{{isEdit && loading}}">
+    <loading-spinner text="加载中..."></loading-spinner>
+  </view>
+
+  <error-state wx:if="{{isEdit && error}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry"></error-state>
+
+  <view wx:if="{{!isEdit || !loading}}">
+    <view class="form-card">
+      <view class="form-item">
+        <text class="label">规则名称</text>
+        <input class="input" placeholder="例如：组合最大回撤监控" value="{{monitorName}}" bindinput="onInputName" maxlength="100" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">监控类型</text>
+        <picker mode="selector" range="{{MONITOR_TYPES}}" range-key="label" value="{{monitorTypeIndex}}" bindchange="onTypeChange">
+          <view class="picker">{{MONITOR_TYPES[monitorTypeIndex].label}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">阈值</text>
+        <input class="input" type="digit" placeholder="输入阈值数值" value="{{thresholdValue}}" bindinput="onThresholdInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">比较方式</text>
+        <picker mode="selector" range="{{COMPARISONS}}" range-key="label" value="{{comparisonIndex}}" bindchange="onComparisonChange">
+          <view class="picker">{{COMPARISONS[comparisonIndex].label}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">严重级别</text>
+        <picker mode="selector" range="{{SEVERITY_LEVELS}}" range-key="label" value="{{severityIndex}}" bindchange="onSeverityChange">
+          <view class="picker">{{SEVERITY_LEVELS[severityIndex].label}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">通知方式</text>
+        <checkbox-group bindchange="onNotificationChange">
+          <label class="checkbox-label" wx:for="{{NOTIFICATION_METHODS}}" wx:key="key">
+            <checkbox value="{{item.key}}" checked="{{notificationChecked[item.key]}}" />
+            <text class="checkbox-text">{{item.label}}</text>
+          </label>
+        </checkbox-group>
+      </view>
+    </view>
+
+    <button class="btn-submit" bindtap="submit" loading="{{submitting}}" disabled="{{submitting}}">{{isEdit ? '保存' : '创建'}}</button>
+  </view>
+</view>

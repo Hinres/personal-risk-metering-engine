@@ -1,0 +1,67 @@
+.consent-mask {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.consent-modal {
+  width: 80%;
+  max-width: 600rpx;
+  background: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 70%;
+}
+
+.consent-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  padding: 40rpx 40rpx 20rpx;
+  text-align: center;
+}
+
+.consent-content {
+  padding: 0 40rpx;
+  max-height: 400rpx;
+}
+
+.consent-text {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.consent-actions {
+  display: flex;
+  padding: 30rpx 40rpx 50rpx;
+  gap: 20rpx;
+}
+
+.consent-btn {
+  flex: 1;
+  min-height: 80rpx;
+  line-height: 80rpx;
+  font-size: 30rpx;
+  border-radius: 12rpx;
+}
+
+.consent-btn.cancel {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 2rpx solid var(--border-color);
+}
+
+.consent-btn.confirm {
+  background: var(--primary-color);
+  color: #ffffff;
+}

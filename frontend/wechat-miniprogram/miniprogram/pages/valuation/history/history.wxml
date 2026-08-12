@@ -1,0 +1,37 @@
+<view class="container">
+  <view class="method-picker">
+    <picker mode="selector" range="{{methods}}" range-key="name" value="{{methodIndex}}" bindchange="onMethodChange">
+      <view class="picker-value">
+        <text>{{methods[methodIndex]?.name || '全部方法'}}</text>
+        <text class="picker-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <view class="spinner"></view>
+    <text>加载中...</text>
+  </view>
+
+  <view class="history-list" wx:if="{{!loading && history.length}}">
+    <view class="history-item" wx:for="{{history}}" wx:key="valuation_id" bindtap="onRecordTap" data-record="{{item}}">
+      <view class="history-header">
+        <text class="history-stock">{{item.stock?.name || item.stock?.symbol || '股票'}}</text>
+        <text class="history-method">{{item.method}}</text>
+      </view>
+      <view class="history-body">
+        <view class="history-value">
+          <text class="value-label">内在价值</text>
+          <text class="value-num">¥{{item.result_value || 'N/A'}}</text>
+        </view>
+        <view class="history-date">
+          <text>{{item.created_at}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && !history.length}}">
+    <text>暂无估值历史</text>
+  </view>
+</view>

@@ -1,0 +1,62 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <loading-spinner type="fullscreen" text="加载中..." />
+  </block>
+  <block wx:elif="{{error}}">
+    <error-state title="加载失败" desc="{{errorMessage}}" retry-text="重新加载" bind:retry="onRetry" />
+  </block>
+  <block wx:elif="{{portfolio}}">
+    <view class="header">
+      <view class="header-main">
+        <text class="title">{{portfolio.name}}</text>
+        <text class="subtitle">{{portfolio.type}} · 创建于 {{portfolio.created_at_fmt}}</text>
+      </view>
+      <text class="edit-link" bindtap="goToEditPortfolio">编辑组合</text>
+    </view>
+
+    <view class="summary">
+      <view class="metric">
+        <text class="label">总资产</text>
+        <text class="value">{{portfolio.total_value_fmt}}</text>
+      </view>
+      <view class="metric">
+        <text class="label">收益率</text>
+        <text class="value" style="color:{{portfolio.return_color}}">{{portfolio.return_rate_fmt}}</text>
+      </view>
+      <view class="metric">
+        <text class="label">持仓数</text>
+        <text class="value">{{holdings.length}}</text>
+      </view>
+    </view>
+
+    <view class="actions">
+      <button class="btn" bindtap="goToAddHolding">添加持仓</button>
+      <button class="btn" bindtap="goToVaR">VaR计算</button>
+      <button class="btn" bindtap="goToStress">压力测试</button>
+      <button class="btn" bindtap="goToMonitors">监控规则</button>
+    </view>
+
+    <view class="section-title">持仓明细</view>
+    <block wx:if="{{!holdings.length}}">
+      <empty-state icon="📈" title="暂无持仓" desc="点击右上角添加持仓开始分析" button-text="添加持仓" button-url="/pages/holding/add/add?portfolioId={{portfolioId}}" />
+    </block>
+    <view wx:for="{{holdings}}" wx:key="holding_id" class="holding-row">
+      <view class="holding-info" bindtap="goToEditHolding" data-id="{{item.holding_id}}">
+        <text class="symbol">{{item.symbol}}</text>
+        <text class="name">{{item.name}} · 成本 {{item.cost_fmt}}</text>
+      </view>
+      <view class="holding-values">
+        <text class="market">{{item.market_value_fmt}}</text>
+        <text class="pnl" style="color:{{item.pnl_color}}">{{item.pnl}}</text>
+      </view>
+      <view class="holding-actions">
+        <text class="action-btn" bindtap="goToEditHolding" data-id="{{item.holding_id}}">编辑</text>
+        <text class="action-btn delete" bindtap="deleteHolding" data-id="{{item.holding_id}}">删除</text>
+      </view>
+    </view>
+
+    <view class="danger-zone">
+      <button class="danger-btn" bindtap="deletePortfolio">删除组合</button>
+    </view>
+  </block>
+</view>

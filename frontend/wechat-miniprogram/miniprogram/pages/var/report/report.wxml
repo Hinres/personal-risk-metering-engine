@@ -1,0 +1,45 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..."></loading-spinner>
+
+  <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+  <block wx:elif="{{report}}">
+    <view class="title">VaR 报告详情</view>
+    <view class="card">
+      <view class="info-row">
+        <text class="label">VaR 数值</text>
+        <text class="value">{{report.varValueFmt}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">VaR 比例</text>
+        <text class="value">{{report.varPercentFmt}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">计算方法</text>
+        <text class="value">{{report.methodName}}</text>
+      </view>
+      <view class="info-row">
+        <text class="label">生成时间</text>
+        <text class="value">{{report.createdAtFmt}}</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:elif="{{history.length > 0}}">
+    <view class="title">VaR 历史报告</view>
+    <view class="history-list">
+      <view class="card history-card" wx:for="{{history}}" wx:key="var_id" bindtap="goToDetail" data-id="{{item.var_id || item.id}}">
+        <view class="info-row">
+          <text class="label">{{item.methodName}}</text>
+          <text class="value">{{item.varPercentFmt}}</text>
+        </view>
+        <view class="info-row">
+          <text class="label">{{item.createdAtFmt}}</text>
+          <text class="value">{{item.varValueFmt}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <empty-state wx:else icon="📄" title="暂无 VaR 报告" desc="计算 VaR 后可在本页查看历史报告"></empty-state>
+</view>

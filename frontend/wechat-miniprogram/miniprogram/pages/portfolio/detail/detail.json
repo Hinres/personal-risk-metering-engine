@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state",
+    "empty-state": "/components/empty-state/empty-state"
+  },
+  "navigationBarTitleText": "组合详情"
+}

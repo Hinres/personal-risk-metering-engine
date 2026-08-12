@@ -1,0 +1,142 @@
+.container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  padding: 30rpx;
+  box-sizing: border-box;
+}
+
+.card {
+  background: var(--bg-secondary);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: var(--shadow);
+  margin-bottom: 20rpx;
+}
+
+.current-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.tier-badge {
+  align-self: flex-start;
+  background: var(--accent-color);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 8rpx 20rpx;
+  border-radius: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.expire-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 20rpx 0;
+  border-bottom: 2rpx solid var(--border-color);
+  margin-bottom: 20rpx;
+}
+
+.label {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
+
+.value {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
+}
+
+.benefit-check {
+  color: var(--success-color);
+  margin-right: 12rpx;
+  font-size: 26rpx;
+}
+
+.benefit-text {
+  font-size: 28rpx;
+  color: var(--text-secondary);
+}
+
+.btn {
+  height: 88rpx;
+  border-radius: 12rpx;
+  font-size: 30rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 30rpx;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+}
+
+.btn-primary::after {
+  border: none;
+}
+
+.compare-section {
+  background: var(--bg-secondary);
+  border-radius: 16rpx;
+  padding: 30rpx;
+  box-shadow: var(--shadow);
+  margin-bottom: 20rpx;
+}
+
+.compare-table {
+  display: flex;
+  flex-direction: column;
+  border: 2rpx solid var(--border-color);
+  border-radius: 12rpx;
+  overflow: hidden;
+}
+
+.table-row {
+  display: flex;
+  border-bottom: 2rpx solid var(--border-color);
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row.header {
+  background: var(--bg-primary);
+}
+
+.table-cell {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx 8rpx;
+  font-size: 24rpx;
+  color: var(--text-primary);
+  border-right: 2rpx solid var(--border-color);
+}
+
+.table-cell:last-child {
+  border-right: none;
+}
+
+.notice {
+  text-align: center;
+  padding: 20rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}

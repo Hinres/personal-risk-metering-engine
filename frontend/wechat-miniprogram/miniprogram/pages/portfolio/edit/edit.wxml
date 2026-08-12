@@ -1,0 +1,44 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <loading-spinner type="fullscreen" text="加载中..." />
+  </block>
+  <block wx:elif="{{error}}">
+    <error-state title="加载失败" desc="{{errorMessage}}" retry-text="重新加载" bind:retry="onRetry" />
+  </block>
+  <block wx:elif="{{portfolio}}">
+    <view class="form-card">
+      <view class="section-title">编辑组合</view>
+
+      <view class="form-item">
+        <text class="label">组合名称</text>
+        <input class="input" placeholder="输入组合名称" value="{{name}}" data-field="name" bindinput="onInput" maxlength="100" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">描述</text>
+        <textarea class="textarea" placeholder="可选描述" value="{{description}}" data-field="description" bindinput="onInput" maxlength="500" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">投资目标</text>
+        <picker mode="selector" range="{{investmentGoals}}" range-key="label" value="{{investmentGoalIndex}}" bindchange="onGoalChange">
+          <view class="picker">{{investmentGoals[investmentGoalIndex].label}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">风险等级</text>
+        <picker mode="selector" range="{{riskLevels}}" range-key="label" value="{{riskLevelIndex}}" bindchange="onRiskChange">
+          <view class="picker">{{riskLevels[riskLevelIndex].label}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item readonly">
+        <text class="label">创建时间</text>
+        <text class="readonly-text">{{portfolio.created_at || '--'}}</text>
+      </view>
+
+      <button class="btn-submit" bindtap="savePortfolio" loading="{{saving}}">保存</button>
+    </view>
+  </block>
+</view>

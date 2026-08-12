@@ -1,0 +1,58 @@
+<view class="container">
+  <view class="header">
+    <view class="header-left">
+      <view class="header-title">风险计量引擎</view>
+      <view class="header-subtitle">个人投资组合风险管理</view>
+    </view>
+    <view class="header-right" bindtap="goToNotifications">
+      <text class="bell">🔔</text>
+      <view wx:if="{{unreadCount > 0}}" class="red-dot"></view>
+    </view>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载组合中..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取组合数据" bind:retry="onRetry" />
+
+    <block wx:if="{{!error}}">
+      <view class="portfolio-card" wx:for="{{portfolios}}" wx:key="portfolio_id" bindtap="goToPortfolio" data-id="{{item.portfolio_id}}">
+        <view class="portfolio-header">
+          <text class="portfolio-name">{{item.name}}</text>
+          <text class="portfolio-type">{{item.type}}</text>
+        </view>
+        <view class="portfolio-stats">
+          <view class="stat-item">
+            <text class="stat-label">总市值</text>
+            <text class="stat-value">{{item.total_value}}</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-label">持仓</text>
+            <text class="stat-value">{{item.holding_count}}只</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-label">风险等级</text>
+            <text class="stat-value" style="color: {{item.risk_color}}">{{item.risk_level}}</text>
+          </view>
+        </view>
+      </view>
+
+      <empty-state wx:if="{{portfolios.length === 0}}" icon="📊" title="暂无组合" desc="您还没有创建投资组合，请先前往组合页面创建" buttonText="去创建" buttonUrl="/pages/portfolio/list/list" />
+
+      <view class="quick-actions">
+        <view class="action-btn" bindtap="goToVaR">
+          <view class="action-icon">📊</view>
+          <text>VaR计算</text>
+        </view>
+        <view class="action-btn" bindtap="goToMonitor">
+          <view class="action-icon">🔔</view>
+          <text>风险监控</text>
+        </view>
+        <view class="action-btn" bindtap="goToReports">
+          <view class="action-icon">📄</view>
+          <text>报告</text>
+        </view>
+      </view>
+    </block>
+  </block>
+</view>

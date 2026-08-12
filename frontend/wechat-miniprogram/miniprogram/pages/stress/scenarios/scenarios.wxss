@@ -1,0 +1,99 @@
+.container {
+  padding: 30rpx;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 32rpx;
+}
+
+.header-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #2c3e50;
+  display: block;
+}
+
+.header-desc {
+  font-size: 26rpx;
+  color: #7f8c8d;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.scenario-list {
+  padding-bottom: 40rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.scenario-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.name {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.shock-label {
+  font-size: 24rpx;
+  color: #7f8c8d;
+}
+
+.card-body {
+  padding: 16rpx 0;
+  border-top: 1rpx solid #ecf0f1;
+  margin-top: 12rpx;
+}
+
+.desc {
+  font-size: 26rpx;
+  color: #7f8c8d;
+  line-height: 1.5;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.btn {
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  padding: 0 24rpx;
+}
+
+.btn-primary {
+  background: #2c3e50;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #ecf0f1;
+  color: #2c3e50;
+}
+
+button::after {
+  border: none;
+}

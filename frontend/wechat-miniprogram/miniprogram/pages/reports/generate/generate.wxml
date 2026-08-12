@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="title">生成报告</view>
+
+  <loading-spinner wx:if="{{loading && !generating}}" type="fullscreen" text="加载中..."></loading-spinner>
+
+  <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+  <block wx:else>
+    <view class="form-card">
+      <view class="form-item">
+        <text class="label">报告类型</text>
+        <picker bindchange="onTypeChange" value="{{reportTypeIndex}}" range="{{reportTypes}}">
+          <view class="picker">{{reportTypes[reportTypeIndex]}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">关联组合</text>
+        <picker bindchange="onPortfolioChange" value="{{portfolioIndex}}" range="{{portfolioNames}}">
+          <view class="picker">{{portfolioNames[portfolioIndex] || '请选择组合'}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item stack">
+        <text class="label">报告名称（可选）</text>
+        <input class="input" placeholder="不填写将自动生成" value="{{reportName}}" bindinput="onNameInput" />
+      </view>
+
+      <view class="form-item stack" wx:if="{{source === 'var' && varId}}">
+        <text class="label">关联 VaR 结果</text>
+        <text class="muted">已关联当前 VaR 计算结果（{{varId}}）</text>
+      </view>
+    </view>
+
+    <button class="btn btn-primary" bindtap="generateReport" loading="{{loading || generating}}">
+      {{generating ? '生成中...' : '生成报告'}}
+    </button>
+  </block>
+</view>

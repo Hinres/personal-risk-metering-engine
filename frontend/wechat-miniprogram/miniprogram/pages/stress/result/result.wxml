@@ -1,0 +1,28 @@
+<view class="container">
+  <view class="title">{{scenarioName}}</view>
+
+  <view class="result-card">
+    <view class="loss-value">{{portfolioLoss}}</view>
+    <view class="loss-label">组合潜在损失</view>
+    <view class="loss-percent" style="color: {{lossColor}}">{{lossPercent}}</view>
+  </view>
+
+  <view class="detail-card">
+    <view class="detail-title">测试详情</view>
+    <view class="detail-item" wx:for="{{details}}" wx:key="label">
+      <text class="detail-label">{{item.label}}</text>
+      <text class="detail-value">{{item.value}}</text>
+    </view>
+  </view>
+
+  <view class="shock-card" wx:if="{{shockedValues.length}}">
+    <view class="detail-title">冲击后持仓</view>
+    <view class="shock-item" wx:for="{{shockedValues}}" wx:key="symbol">
+      <text class="shock-symbol">{{item.symbol}}</text>
+      <text class="shock-value">{{item.shocked_value_fmt}}</text>
+      <text class="shock-change" style="color: {{item.changeColor}}">{{item.change_fmt}}</text>
+    </view>
+  </view>
+
+  <button class="btn btn-primary" bindtap="goBack">返回</button>
+</view>

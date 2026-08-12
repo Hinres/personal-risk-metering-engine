@@ -1,0 +1,79 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载用户信息..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取用户信息" bind:retry="onRetry" />
+
+    <block wx:if="{{user && !error}}">
+      <view class="profile-header card">
+        <button class="avatar-btn" open-type="chooseAvatar" bind:chooseavatar="onChooseAvatar">
+          <image wx:if="{{tempAvatarUrl || (useWechatAvatar && user.avatarUrl)}}" class="avatar-img" src="{{tempAvatarUrl || user.avatarUrl}}" mode="aspectFill" />
+          <view wx:else class="avatar-default">
+            <text class="avatar-text">{{user.displayName[0].toUpperCase()}}</text>
+          </view>
+        </button>
+        <text class="avatar-hint">点击头像更新</text>
+
+        <view class="nickname-row">
+          <text class="nickname-label">昵称</text>
+          <input type="nickname" class="nickname-input" placeholder="请输入昵称" value="{{editingNickName}}" bindinput="onNicknameInput" />
+        </view>
+
+        <button class="btn btn-primary" bindtap="saveWechatInfo" loading="{{saving}}">保存微信头像/昵称</button>
+
+        <view class="hint-text">新版头像昵称填写能力：点击头像选择微信头像，在昵称框选择微信昵称后保存。</view>
+      </view>
+
+      <view class="card member-card" bindtap="goToSubscription">
+        <view class="member-info">
+          <text class="member-label">会员状态</text>
+          <text class="member-value">{{user.subscriptionLabel}}</text>
+        </view>
+        <text class="arrow">›</text>
+      </view>
+
+      <view class="menu card">
+        <view class="menu-item" bindtap="goToAlerts">
+          <text class="label">预警通知</text>
+          <view class="right">
+            <text class="badge" wx:if="{{unreadCount > 0}}">{{unreadCount}}</text>
+            <text class="arrow">›</text>
+          </view>
+        </view>
+
+        <view class="menu-item" bindtap="goToSettings">
+          <text class="label">设置</text>
+          <text class="arrow">›</text>
+        </view>
+
+        <view class="menu-item" bindtap="goToHelp">
+          <text class="label">帮助</text>
+          <text class="arrow">›</text>
+        </view>
+
+        <view class="menu-item" bindtap="goToSubscription">
+          <text class="label">订阅</text>
+          <text class="arrow">›</text>
+        </view>
+
+        <view class="menu-item switch-item">
+          <text class="label">使用微信头像/昵称</text>
+          <switch checked="{{useWechatAvatar}}" bindchange="onToggleWechatAvatar" />
+        </view>
+      </view>
+
+      <view class="info-card card">
+        <view class="info-row">
+          <text class="info-label">注册邮箱</text>
+          <text class="info-value">{{user.email || '未绑定邮箱'}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-label">注册时间</text>
+          <text class="info-value">{{user.created_at_fmt}}</text>
+        </view>
+      </view>
+
+      <button class="btn btn-logout" bindtap="logout">退出登录</button>
+    </block>
+  </block>
+</view>

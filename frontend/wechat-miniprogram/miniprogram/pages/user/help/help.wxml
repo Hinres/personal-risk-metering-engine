@@ -1,0 +1,19 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载帮助内容..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取帮助内容" bind:retry="onRetry" />
+
+    <view wx:else class="help-list">
+      <view class="help-item card" wx:for="{{categories}}" wx:key="title" data-index="{{index}}" bindtap="toggleExpand">
+        <view class="help-header">
+          <text class="help-title">{{item.title}}</text>
+          <text class="help-arrow {{item.expanded ? 'expanded' : ''}}">›</text>
+        </view>
+        <view class="help-body {{item.expanded ? 'expanded' : ''}}">
+          <text class="help-content">{{item.content}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

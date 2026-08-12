@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="header">
+    <text class="header-title">执行压力测试</text>
+    <text class="header-desc" wx:if="{{portfolioId}}">组合 ID: {{portfolioId}}</text>
+  </view>
+
+  <view class="form-card">
+    <view class="form-item">
+      <text class="label">选择情景</text>
+      <picker mode="selector" range="{{scenarios}}" range-key="scenario_name" value="{{scenarioIndex}}" bindchange="onScenarioChange">
+        <view class="picker">{{scenarios[scenarioIndex].scenario_name || '请选择情景'}}</view>
+      </picker>
+    </view>
+
+    <view class="scenario-info" wx:if="{{scenarios[scenarioIndex].description}}">
+      <text class="scenario-name">{{scenarios[scenarioIndex].scenario_name}}</text>
+      <text class="scenario-desc">{{scenarios[scenarioIndex].description}}</text>
+    </view>
+
+    <view class="custom-section">
+      <text class="custom-section-title">自定义冲击参数 (%)</text>
+      <view class="form-item">
+        <text class="label">股票</text>
+        <input class="input" type="digit" value="{{customShocks.equity}}" data-field="equity" bindinput="onCustomShock" />
+      </view>
+      <view class="form-item">
+        <text class="label">债券</text>
+        <input class="input" type="digit" value="{{customShocks.bond}}" data-field="bond" bindinput="onCustomShock" />
+      </view>
+      <view class="form-item">
+        <text class="label">外汇</text>
+        <input class="input" type="digit" value="{{customShocks.fx}}" data-field="fx" bindinput="onCustomShock" />
+      </view>
+      <view class="form-item">
+        <text class="label">商品</text>
+        <input class="input" type="digit" value="{{customShocks.commodity}}" data-field="commodity" bindinput="onCustomShock" />
+      </view>
+    </view>
+  </view>
+
+  <button class="btn-submit" bindtap="runStressTest" loading="{{loading}}">开始测试</button>
+</view>

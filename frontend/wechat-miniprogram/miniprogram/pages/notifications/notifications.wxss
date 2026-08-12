@@ -1,0 +1,86 @@
+.container {
+  padding: 30rpx;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+.title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 24rpx;
+}
+
+.list {
+  height: 100vh;
+}
+
+.loading {
+  text-align: center;
+  padding: 40rpx;
+  color: #7f8c8d;
+  font-size: 28rpx;
+}
+
+.empty {
+  text-align: center;
+  padding: 80rpx 40rpx;
+  color: #7f8c8d;
+  font-size: 28rpx;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.card.unread {
+  border-left: 6rpx solid #2c3e50;
+}
+
+.card.read {
+  border-left: 6rpx solid #e0e0e0;
+  opacity: 0.8;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.card-header .title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0;
+}
+
+.card-header .time {
+  font-size: 24rpx;
+  color: #7f8c8d;
+}
+
+.card-body .content {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.5;
+}
+
+.card-footer {
+  margin-top: 12rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.unread-badge {
+  font-size: 22rpx;
+  color: #2c3e50;
+  background: #ecf0f1;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}

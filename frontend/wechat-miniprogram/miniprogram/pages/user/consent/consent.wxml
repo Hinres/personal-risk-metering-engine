@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="intro card">
+    <text class="intro-title">功能授权管理</text>
+    <text class="intro-desc">您可随时开启或关闭以下功能授权。关闭后，相关功能将无法使用。</text>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载授权状态..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取同意记录" bind:retry="onRetry" />
+
+    <view wx:else class="consent-list">
+      <view class="consent-item card" wx:for="{{items}}" wx:key="consent_type">
+        <view class="consent-main">
+          <view class="consent-info">
+            <text class="consent-label">{{item.label}}</text>
+            <text class="consent-desc">{{item.desc}}</text>
+          </view>
+          <switch class="consent-switch" checked="{{item.granted}}" data-index="{{index}}" bindchange="onToggle" />
+        </view>
+        <view class="consent-status">
+          <text class="status {{item.granted ? 'status-on' : 'status-off'}}">{{item.granted ? '已授权' : '未授权'}}</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="footer" wx:if="{{!loading && !error}}">
+    <button class="btn btn-primary" bindtap="onDone">完成</button>
+  </view>
+</view>

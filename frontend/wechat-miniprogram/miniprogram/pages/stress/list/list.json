@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "压力测试历史",
+  "usingComponents": {
+    "empty-state": "/components/empty-state/empty-state",
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state"
+  }
+}

@@ -1,0 +1,17 @@
+.container { padding: 20rpx; background: #f5f6fa; min-height: 100vh; }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.title { font-size: 36rpx; font-weight: bold; color: #2c3e50; }
+.btn-add { background: #2c3e50; color: #fff; font-size: 28rpx; padding: 10rpx 24rpx; border-radius: 8rpx; }
+.list { height: calc(100vh - 120rpx); }
+.card { background: #fff; border-radius: 12rpx; padding: 24rpx; margin-bottom: 16rpx; box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.symbol { font-size: 32rpx; font-weight: bold; color: #2c3e50; }
+.name { font-size: 24rpx; color: #7f8c8d; }
+.card-body { display: flex; justify-content: space-between; }
+.metric { text-align: center; flex: 1; }
+.metric .label { font-size: 24rpx; color: #7f8c8d; display: block; }
+.metric .value { font-size: 28rpx; font-weight: bold; display: block; margin-top: 4rpx; }
+.card-actions { display: flex; justify-content: flex-end; gap: 16rpx; margin-top: 16rpx; }
+.action-btn { font-size: 26rpx; color: #2c3e50; padding: 8rpx 24rpx; border: 2rpx solid #2c3e50; border-radius: 8rpx; background: #fff; }
+.action-btn.delete { color: #e74c3c; border-color: #e74c3c; }
+.fab { position: fixed; bottom: 40rpx; right: 40rpx; width: 96rpx; height: 96rpx; background: #2c3e50; color: #fff; border-radius: 50%; font-size: 48rpx; line-height: 96rpx; text-align: center; box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.2); }

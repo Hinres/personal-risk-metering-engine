@@ -1,0 +1,47 @@
+<view class="container">
+  <view class="form-card">
+    <view class="section-title">添加持仓</view>
+
+    <block wx:if="{{error}}">
+      <error-state title="提交失败" desc="{{errorMessage}}" retry-text="重试" bind:retry="addHolding" />
+    </block>
+
+    <view class="form-item">
+      <text class="label label-required">标的代码</text>
+      <input class="input" placeholder="如: AAPL, 000001" value="{{symbol}}" data-field="symbol" bindinput="onInput" maxlength="20" />
+    </view>
+
+    <view class="form-item">
+      <text class="label label-required">市场</text>
+      <input class="input" placeholder="如: SH, SZ, HK, US" value="{{market}}" data-field="market" bindinput="onInput" maxlength="20" />
+    </view>
+
+    <view class="form-item">
+      <text class="label label-required">数量</text>
+      <input class="input" type="digit" placeholder="持仓数量" value="{{quantity}}" data-field="quantity" bindinput="onInput" />
+    </view>
+
+    <view class="form-item">
+      <text class="label label-required">成本价</text>
+      <input class="input" type="digit" placeholder="每单位成本" value="{{costPrice}}" data-field="costPrice" bindinput="onInput" />
+    </view>
+
+    <view class="form-item">
+      <text class="label">买入日期</text>
+      <picker mode="date" value="{{purchaseDate}}" bindchange="onDateChange">
+        <view class="picker">{{purchaseDate || '请选择日期'}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="label">备注</text>
+      <textarea class="textarea" placeholder="可选备注" value="{{remark}}" data-field="remark" bindinput="onInput" maxlength="500" />
+    </view>
+
+    <button class="btn-submit" bindtap="addHolding" loading="{{loading}}">添加</button>
+  </view>
+
+  <block wx:if="{{loading}}">
+    <loading-spinner type="inline" text="提交中..." />
+  </block>
+</view>

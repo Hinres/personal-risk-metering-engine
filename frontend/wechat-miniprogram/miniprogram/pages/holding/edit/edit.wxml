@@ -1,0 +1,48 @@
+<view class="container">
+  <block wx:if="{{loading}}">
+    <loading-spinner type="fullscreen" text="加载中..." />
+  </block>
+  <block wx:elif="{{error}}">
+    <error-state title="加载失败" desc="{{errorMessage}}" retry-text="重新加载" bind:retry="onRetry" />
+  </block>
+  <block wx:elif="{{holding}}">
+    <view class="form-card">
+      <view class="section-title">编辑持仓</view>
+
+      <view class="form-item readonly">
+        <text class="label">标的代码</text>
+        <text class="readonly-text">{{symbol}}</text>
+      </view>
+
+      <view class="form-item readonly">
+        <text class="label">市场</text>
+        <text class="readonly-text">{{market}}</text>
+      </view>
+
+      <view class="form-item">
+        <text class="label label-required">数量</text>
+        <input class="input" type="digit" placeholder="持仓数量" value="{{quantity}}" data-field="quantity" bindinput="onInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label label-required">成本价</text>
+        <input class="input" type="digit" placeholder="每单位成本" value="{{costPrice}}" data-field="costPrice" bindinput="onInput" />
+      </view>
+
+      <view class="form-item">
+        <text class="label">买入日期</text>
+        <picker mode="date" value="{{purchaseDate}}" bindchange="onDateChange">
+          <view class="picker">{{purchaseDate || '请选择日期'}}</view>
+        </picker>
+      </view>
+
+      <view class="form-item">
+        <text class="label">备注</text>
+        <textarea class="textarea" placeholder="可选备注" value="{{remark}}" data-field="remark" bindinput="onInput" maxlength="500" />
+      </view>
+
+      <button class="btn-submit" bindtap="saveHolding" loading="{{saving}}">保存</button>
+      <button class="btn-danger" bindtap="deleteHolding" loading="{{deleting}}">删除持仓</button>
+    </view>
+  </block>
+</view>

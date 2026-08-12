@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="header">
+    <text class="header-icon">⚠️</text>
+    <text class="header-title">投资风险提示</text>
+    <text class="header-subtitle">请认真阅读以下风险说明，确认后方可使用核心功能</text>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载风险说明中..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取风险提示内容" bind:retry="onRetry" />
+
+    <scroll-view wx:else class="risk-content" scroll-y enhanced show-scrollbar>
+      <text class="risk-text">{{content}}</text>
+    </scroll-view>
+  </block>
+
+  <view class="footer-actions">
+    <button class="btn btn-primary" bindtap="onAgree" loading="{{submitting}}" disabled="{{submitting}}">我已阅读并同意</button>
+    <button class="btn btn-secondary" bindtap="onDecline">暂不同意</button>
+  </view>
+</view>

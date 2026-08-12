@@ -1,0 +1,28 @@
+<view class="container">
+  <view class="title">消息通知</view>
+
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <block wx:if="{{loading && !refreshing}}">
+      <view class="loading"><text>加载中...</text></view>
+    </block>
+    <block wx:elif="{{!notifications.length}}">
+      <view class="empty">
+        <text>暂无通知</text>
+      </view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{notifications}}" wx:key="notification_id" class="card {{item.is_read ? 'read' : 'unread'}}" bindtap="markAsRead" data-id="{{item.notification_id}}">
+        <view class="card-header">
+          <text class="title">{{item.title}}</text>
+          <text class="time">{{item.created_at_fmt}}</text>
+        </view>
+        <view class="card-body">
+          <text class="content">{{item.content || item.message}}</text>
+        </view>
+        <view class="card-footer" wx:if="{{!item.is_read}}">
+          <text class="unread-badge">未读</text>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

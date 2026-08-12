@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state"
+  },
+  "navigationBarTitleText": "帮助中心"
+}

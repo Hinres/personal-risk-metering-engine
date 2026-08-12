@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: prme-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-prme_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-prme_password}
+      POSTGRES_DB: ${DB_NAME:-prme_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/postgres-init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-prme_user} -d ${DB_NAME:-prme_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - prme-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prme-backend
+    environment:
+      NODE_ENV: production
+      DB_TYPE: postgres
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-prme_user}
+      DB_PASSWORD: ${DB_PASSWORD:-prme_password}
+      DB_NAME: ${DB_NAME:-prme_db}
+      DB_POOL_MAX: 20
+      DB_POOL_MIN: 5
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: 24h
+      JWT_REFRESH_EXPIRES_IN: 7d
+      CALC_ENGINE_URL: http://calculation-engine:8000
+      WECHAT_APP_ID: ${WECHAT_APP_ID}
+      WECHAT_APP_SECRET: ${WECHAT_APP_SECRET}
+      TUSHARE_TOKEN: ${TUSHARE_TOKEN}
+      LOG_LEVEL: info
+      LOG_DIR: /app/logs
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+    networks:
+      - prme-network
+    restart: unless-stopped
+
+  calculation-engine:
+    build:
+      context: ../calculation-engine
+      dockerfile: Dockerfile
+    container_name: prme-calc-engine
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-prme_user}:${DB_PASSWORD:-prme_password}@postgres:5432/${DB_NAME:-prme_db}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - prme-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  prme-network:
+    driver: bridge

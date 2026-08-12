@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="header">
+    <text class="title">我的组合</text>
+    <button class="btn-add" bindtap="goToCreate">+ 新建</button>
+  </view>
+
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <block wx:if="{{loading && !refreshing}}">
+      <loading-spinner type="fullscreen" text="加载中..." />
+    </block>
+    <block wx:elif="{{error}}">
+      <error-state title="加载失败" desc="{{errorMessage}}" retry-text="重新加载" bind:retry="onRetry" />
+    </block>
+    <block wx:elif="{{!portfolios.length}}">
+      <empty-state icon="📁" title="暂无组合" desc="您还没有创建任何组合" button-text="创建组合" button-url="/pages/portfolio/create/create" />
+    </block>
+    <block wx:else>
+      <view wx:for="{{portfolios}}" wx:key="portfolio_id" class="card" bindtap="goToDetail" data-id="{{item.portfolio_id}}" bindlongpress="showActions">
+        <view class="card-header">
+          <text class="name">{{item.name}}</text>
+          <view class="menu-btn" catchtap="showActions" data-id="{{item.portfolio_id}}">
+            <text class="menu-dots">⋯</text>
+          </view>
+        </view>
+        <view class="card-body">
+          <view class="metric">
+            <text class="label">总资产</text>
+            <text class="value">{{item.total_value_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">收益率</text>
+            <text class="value" style="color:{{item.return_color}}">{{item.return_rate_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">持仓数</text>
+            <text class="value">{{item.holding_count || 0}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

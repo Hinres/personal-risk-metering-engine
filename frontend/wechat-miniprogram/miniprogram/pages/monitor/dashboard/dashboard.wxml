@@ -1,0 +1,74 @@
+<view class="container">
+  <view class="title">风险监控</view>
+
+  <view class="subscribe-guide" wx:if="{{showSubscribeGuide}}">
+    <view class="guide-content" bindtap="onSubscribeGuideTap">
+      <text class="guide-icon">🔔</text>
+      <text class="guide-text">开启风险预警通知</text>
+    </view>
+    <view class="guide-close" bindtap="closeSubscribeGuide">✕</view>
+  </view>
+
+  <view class="status-cards">
+    <view class="status-card green" bindtap="goToRules">
+      <text class="status-number">{{stats.normal}}</text>
+      <text class="status-label">正常监控</text>
+    </view>
+    <view class="status-card yellow" bindtap="goToAlerts">
+      <text class="status-number">{{stats.warning}}</text>
+      <text class="status-label">预警中</text>
+    </view>
+    <view class="status-card red" bindtap="goToAlerts">
+      <text class="status-number">{{stats.high}}</text>
+      <text class="status-label">高风险</text>
+    </view>
+  </view>
+
+  <view class="action-bar" wx:if="{{unreadCount > 0}}">
+    <view class="notice-btn" bindtap="goToNotifications">
+      <text>📬 未读消息 {{unreadCount}} 条</text>
+    </view>
+  </view>
+
+  <view class="menu-card">
+    <view class="menu-item" bindtap="goToRules">
+      <text class="menu-text">管理规则</text>
+      <text class="menu-arrow">></text>
+    </view>
+    <view class="menu-item primary" bindtap="goToCreateRule">
+      <text class="menu-text">+ 新建规则</text>
+      <text class="menu-arrow">></text>
+    </view>
+  </view>
+
+  <view class="alerts-section">
+    <view class="section-header">
+      <text class="section-title">最新预警</text>
+      <text class="section-more" bindtap="viewAllAlerts">查看全部 ></text>
+    </view>
+
+    <view class="custom-empty" wx:if="{{!alerts.length && !loading}}">
+      <text>暂无预警</text>
+    </view>
+
+    <view class="alert-item" wx:for="{{alerts}}" wx:key="alert_id" bindtap="goToAlerts">
+      <view class="alert-dot" style="background: {{item.severityColor}}"></view>
+      <view class="alert-content">
+        <text class="alert-title">{{item.monitor_name || item.title}}</text>
+        <text class="alert-time">{{item.triggeredAtFmt}}</text>
+      </view>
+      <text class="alert-severity" style="color: {{item.severityColor}}">{{item.severityLabel}}</text>
+    </view>
+  </view>
+
+  <view class="monitor-section" wx:if="{{monitors.length}}">
+    <view class="section-header">
+      <text class="section-title">监控规则</text>
+      <text class="section-more" bindtap="goToRules">管理 ></text>
+    </view>
+    <view class="monitor-item" wx:for="{{monitors}}" wx:key="monitor_id">
+      <text class="monitor-name">{{item.monitor_name}}</text>
+      <text class="monitor-type">{{item.typeLabel}}</text>
+    </view>
+  </view>
+</view>

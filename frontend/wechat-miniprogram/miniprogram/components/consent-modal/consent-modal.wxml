@@ -1,0 +1,12 @@
+<view class="consent-mask" wx:if="{{visible}}" bindtap="onCancel">
+  <view class="consent-modal" catchtap="stop">
+    <view class="consent-title">{{title}}</view>
+    <scroll-view class="consent-content" scroll-y>
+      <text class="consent-text">{{content}}</text>
+    </scroll-view>
+    <view class="consent-actions">
+      <button class="consent-btn cancel" bindtap="onCancel">{{cancelText}}</button>
+      <button class="consent-btn confirm" bindtap="onConfirm">{{confirmText}}</button>
+    </view>
+  </view>
+</view>

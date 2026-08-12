@@ -1,0 +1,26 @@
+<view class="container">
+  <view class="top-action">
+    <button class="btn btn-primary" bindtap="goToGenerate">+ 生成报告</button>
+  </view>
+
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <loading-spinner wx:if="{{loading && !refreshing}}" type="inline" text="加载中..."></loading-spinner>
+
+    <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+    <block wx:elif="{{reports.length > 0}}">
+      <view wx:for="{{reports}}" wx:key="report_id" class="card" bindtap="goToDetail" data-id="{{item.report_id}}">
+        <view class="card-header">
+          <text class="name">{{item.typeLabel}}</text>
+          <text class="tag">{{item.formatLabel}}</text>
+        </view>
+        <view class="card-body">
+          <text class="desc">{{item.description || item.report_name || '无描述'}}</text>
+          <text class="date">{{item.created_at_fmt}}</text>
+        </view>
+      </view>
+    </block>
+
+    <empty-state wx:else icon="📑" title="暂无报告" desc="暂无报告，可基于 VaR 结果生成" buttonText="去生成报告" buttonUrl="/pages/reports/generate/generate?source=list"></empty-state>
+  </scroll-view>
+</view>

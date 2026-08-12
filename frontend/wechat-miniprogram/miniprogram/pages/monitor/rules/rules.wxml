@@ -1,0 +1,32 @@
+<view class="container">
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <loading-spinner wx:if="{{loading && !refreshing}}" text="加载中..."></loading-spinner>
+
+    <error-state wx:if="{{error && !loading}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry"></error-state>
+
+    <empty-state wx:if="{{!loading && !error && !monitors.length}}" icon="📋" title="暂无监控规则" desc="创建规则后，当风险指标触发阈值时会自动收到预警" buttonText="+ 新建规则" buttonUrl="/pages/monitor/create/create"></empty-state>
+
+    <view wx:for="{{monitors}}" wx:key="id" class="rule-card" bindtap="onItemTap" bindlongpress="onItemLongPress" data-id="{{item.id}}">
+      <view class="rule-header">
+        <view class="rule-title">
+          <text class="rule-name">{{item.monitor_name}}</text>
+          <text class="rule-severity" style="color: {{item.severityColor}}">{{item.severityLabel}}</text>
+        </view>
+        <view class="rule-menu" catchtap="onMenuTap" data-id="{{item.id}}">
+          <text class="menu-icon">⋮</text>
+        </view>
+      </view>
+
+      <view class="rule-body">
+        <view class="rule-meta">
+          <text class="rule-type">{{item.typeLabel}}</text>
+          <text class="rule-divider">|</text>
+          <text class="rule-threshold">阈值 {{item.thresholdFmt}}</text>
+        </view>
+        <text class="rule-status" style="color: {{item.status === 'active' ? '#27ae60' : '#7f8c8d'}}">{{item.statusLabel}}</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="fab" bindtap="goToCreate">+ 新建规则</view>
+</view>

@@ -1,0 +1,36 @@
+<view class="container">
+  <view class="top-action">
+    <button class="btn btn-primary" bindtap="goToScenarios">去执行压力测试</button>
+  </view>
+
+  <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">
+    <loading-spinner wx:if="{{loading && !refreshing}}" type="inline" text="加载中..."></loading-spinner>
+
+    <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+    <block wx:elif="{{history.length > 0}}">
+      <view wx:for="{{history}}" wx:key="stress_id" class="card">
+        <view class="card-header">
+          <text class="name">{{item.scenario_name}}</text>
+          <text class="date">{{item.test_date_fmt}}</text>
+        </view>
+        <view class="card-body">
+          <view class="metric">
+            <text class="label">组合价值</text>
+            <text class="value">{{item.portfolio_value_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">压力后价值</text>
+            <text class="value">{{item.stressed_value_fmt}}</text>
+          </view>
+          <view class="metric">
+            <text class="label">损失</text>
+            <text class="value" style="color:#e74c3c">{{item.loss_amount_fmt}} ({{item.loss_percentage_fmt}})</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <empty-state wx:else icon="📉" title="暂无历史记录" desc="选择压力情景并执行测试，结果将展示在这里"></empty-state>
+  </scroll-view>
+</view>

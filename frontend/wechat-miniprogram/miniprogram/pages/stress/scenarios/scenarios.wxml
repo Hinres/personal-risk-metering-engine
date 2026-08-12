@@ -1,0 +1,32 @@
+<view class="container">
+  <view class="header">
+    <text class="header-title">压力测试情景</text>
+    <text class="header-desc">选择内置情景执行，或自定义冲击参数</text>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..."></loading-spinner>
+
+  <error-state wx:elif="{{error}}" title="{{error}}" desc="{{errorMsg}}" bindretry="onRetry"></error-state>
+
+  <view class="scenario-list" wx:elif="{{scenarios.length > 0}}">
+    <view class="card" wx:for="{{scenarios}}" wx:key="scenario_id">
+      <view class="card-header">
+        <view class="scenario-info">
+          <text class="name">{{item.scenario_name}}</text>
+          <text class="shock-label" wx:if="{{item.shockLabel}}">{{item.shockLabel}}</text>
+        </view>
+      </view>
+
+      <view class="card-body" wx:if="{{expandedId === (item.id || item.scenario_id)}}">
+        <text class="desc">{{item.description || '暂无描述'}}</text>
+      </view>
+
+      <view class="card-actions">
+        <button class="btn btn-secondary" size="mini" data-id="{{item.id || item.scenario_id}}" bindtap="toggleDetail">详情</button>
+        <button class="btn btn-primary" size="mini" data-id="{{item.id || item.scenario_id}}" bindtap="goToRun">执行</button>
+      </view>
+    </view>
+  </view>
+
+  <empty-state wx:else icon="📊" title="暂无压力情景" desc="请稍后重试或联系管理员"></empty-state>
+</view>

@@ -1,0 +1,81 @@
+<view class="container">
+  <view class="stock-header">
+    <text class="stock-name">{{name}}</text>
+    <text class="stock-symbol">{{symbol}}</text>
+  </view>
+
+  <view class="method-picker">
+    <picker mode="selector" range="{{methodNames}}" value="{{methodIndex}}" bindchange="onMethodChange">
+      <view class="picker-value">
+        <text>估值方法：{{methodNames[methodIndex] || '请选择'}}</text>
+        <text class="picker-arrow">▼</text>
+      </view>
+    </picker>
+  </view>
+
+  <view class="input-section" wx:if="{{methods.length}}">
+    <view class="input-item" wx:for="{{methods[methodIndex].inputs || []}}" wx:key="name" wx:for-item="input">
+      <text class="input-label">{{input.label || input.name}}</text>
+      <input
+        type="digit"
+        placeholder="{{input.placeholder || '请输入'}}"
+        data-field="{{input.name}}"
+        bindinput="onInputChange"
+        class="input-field"
+      />
+    </view>
+  </view>
+
+  <view class="calc-btn" bindtap="calculate" wx:if="{{!calculating}}">
+    <text>开始估值</text>
+  </view>
+  <view class="calc-btn loading" wx:if="{{calculating}}">
+    <text>计算中...</text>
+  </view>
+
+  <view class="result-card" wx:if="{{result}}">
+    <view class="result-title">估值结果</view>
+
+    <view class="judgment-badge" wx:if="{{valuationJudgment}}" style="background-color: {{judgmentColor}};">
+      <text class="judgment-text">{{valuationJudgment}}</text>
+    </view>
+
+    <view class="result-row">
+      <text class="result-label">内在价值</text>
+      <text class="result-value">¥{{result.intrinsic_value || 'N/A'}}</text>
+    </view>
+    <view class="result-row" wx:if="{{result.range_low}}">
+      <text class="result-label">价值区间</text>
+      <text class="result-value">¥{{result.range_low}} - ¥{{result.range_high}}</text>
+    </view>
+    <view class="result-row" wx:if="{{result.current_pe}}">
+      <text class="result-label">当前PE</text>
+      <text class="result-value">{{result.current_pe}}x</text>
+    </view>
+    <view class="result-row" wx:if="{{result.current_peg}}">
+      <text class="result-label">当前PEG</text>
+      <text class="result-value">{{result.current_peg}}</text>
+    </view>
+    <view class="result-row" wx:if="{{result.fair_pe}}">
+      <text class="result-label">合理PE</text>
+      <text class="result-value">{{result.fair_pe}}x</text>
+    </view>
+    <view class="result-row" wx:if="{{result.assumptions}}">
+      <text class="result-label">核心假设</text>
+      <view class="assumptions">
+        <text wx:for="{{result.assumptions}}" wx:key="index" wx:for-item="val" class="assumption-item">
+          {{val}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <view class="chart-card" wx:if="{{chartData.length > 0}}">
+    <view class="chart-title">估值可视化</view>
+    <canvas type="2d" id="valuationChart" class="valuation-chart"></canvas>
+  </view>
+
+  <view class="footer-link" bindtap="goToHistory">
+    <text>查看该股票估值历史 →</text>
+  </view>
+</view>

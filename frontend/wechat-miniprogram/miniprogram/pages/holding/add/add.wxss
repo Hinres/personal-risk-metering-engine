@@ -1,0 +1,98 @@
+.container {
+  padding: 30rpx;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+
+.form-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.08);
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 24rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #ecf0f1;
+}
+
+.form-item {
+  margin-bottom: 28rpx;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-size: 28rpx;
+  color: #2c3e50;
+  font-weight: 500;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.label-required::before {
+  content: '* ';
+  color: #e74c3c;
+}
+
+.input, .picker, .textarea {
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 28rpx;
+  background: #fafafa;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus, .picker:focus, .textarea:focus {
+  border-color: #2c3e50;
+  background: #fff;
+}
+
+.textarea {
+  height: 180rpx;
+  line-height: 1.5;
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.picker::after {
+  content: '▼';
+  font-size: 20rpx;
+  color: #7f8c8d;
+}
+
+.btn-submit {
+  background: #2c3e50;
+  color: #fff;
+  font-size: 32rpx;
+  font-weight: 500;
+  height: 96rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 40rpx;
+  box-shadow: 0 4rpx 12rpx rgba(44,62,80,0.3);
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+.btn-submit[disabled] {
+  background: #bdc3c7;
+  box-shadow: none;
+}

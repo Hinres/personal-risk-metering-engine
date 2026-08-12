@@ -1,0 +1,53 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 60rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  line-height: 1;
+  margin-bottom: 30rpx;
+}
+
+.empty-icon.default {
+  width: 160rpx;
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-box {
+  width: 120rpx;
+  height: 120rpx;
+  border: 4rpx dashed var(--text-light);
+  border-radius: 24rpx;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 16rpx;
+}
+
+.empty-desc {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 40rpx;
+  line-height: 1.5;
+}
+
+.empty-btn {
+  min-height: 72rpx;
+  padding: 0 40rpx;
+  line-height: 72rpx;
+  font-size: 28rpx;
+  color: #ffffff;
+  background: var(--primary-color);
+  border-radius: 12rpx;
+}

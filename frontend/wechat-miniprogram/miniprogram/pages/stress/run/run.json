@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "执行压力测试",
+  "usingComponents": {
+    "empty-state": "/components/empty-state/empty-state",
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state"
+  }
+}

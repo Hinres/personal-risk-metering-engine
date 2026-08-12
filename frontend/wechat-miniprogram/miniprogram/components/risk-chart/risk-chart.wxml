@@ -1,0 +1,4 @@
+<view class="chart-container">
+  <view class="chart-title" wx:if="{{title}}">{{title}}</view>
+  <canvas type="2d" id="{{canvasId}}" class="chart-canvas" style="height: {{height}}rpx;"></canvas>
+</view>

@@ -1,0 +1,80 @@
+# =====================================================
+# PRME Monorepo 根目录 .gitignore
+# 复制到 /workspace/projects/personal-risk-metering-engine/.gitignore
+# =====================================================
+
+# 环境变量（必须排除真实密钥）
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# 依赖目录
+node_modules/
+package-lock.json?
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python 虚拟环境
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# 构建产物
+build/
+dist/
+*.tsbuildinfo
+*.tgz
+
+# 日志
+logs/
+*.log
+
+# 数据库与数据文件
+data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-journal
+
+# 上传文件
+uploads/
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# IDE 与编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# OpenClaw 工作区元数据（禁止入仓）
+.openclaw/
+AGENTS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+IDENTITY.md
+SOUL.md
+TOOLS.md
+USER.md
+
+# 迁移备份
+backend.git.backup/
+backend.git.backup.tar.gz
+
+# 临时文件
+tmp/
+temp/
+*.tmp

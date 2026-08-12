@@ -1,0 +1,90 @@
+{
+  "pages": [
+    "pages/user/login/login",
+    "pages/user/risk-ack/risk-ack",
+    "pages/user/consent/consent",
+    "pages/user/settings/settings",
+    "pages/user/help/help",
+    "pages/user/subscription/subscription",
+    "pages/index/index",
+    "pages/portfolio/list/list",
+    "pages/portfolio/detail/detail",
+    "pages/portfolio/create/create",
+    "pages/portfolio/edit/edit",
+    "pages/holding/list/list",
+    "pages/holding/add/add",
+    "pages/holding/edit/edit",
+    "pages/var/calculate/calculate",
+    "pages/var/result/result",
+    "pages/var/report/report",
+    "pages/stress/list/list",
+    "pages/stress/scenarios/scenarios",
+    "pages/stress/run/run",
+    "pages/stress/result/result",
+    "pages/monitor/dashboard/dashboard",
+    "pages/monitor/rules/rules",
+    "pages/monitor/create/create",
+    "pages/monitor/alerts/alerts",
+    "pages/valuation/search/search",
+    "pages/valuation/result/result",
+    "pages/valuation/history/history",
+    "pages/reports/list/list",
+    "pages/reports/detail/detail",
+    "pages/reports/generate/generate",
+    "pages/notifications/notifications",
+    "pages/user/profile/profile"
+  ],
+  "window": {
+    "backgroundTextStyle": "dark",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTitleText": "PIAP",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f6fa"
+  },
+  "tabBar": {
+    "color": "#7f8c8d",
+    "selectedColor": "#2c3e50",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/icons/home.png",
+        "selectedIconPath": "assets/icons/home-active.png"
+      },
+      {
+        "pagePath": "pages/portfolio/list/list",
+        "text": "组合",
+        "iconPath": "assets/icons/portfolio.png",
+        "selectedIconPath": "assets/icons/portfolio-active.png"
+      },
+      {
+        "pagePath": "pages/valuation/search/search",
+        "text": "估值",
+        "iconPath": "assets/icons/valuation.png",
+        "selectedIconPath": "assets/icons/valuation-active.png"
+      },
+      {
+        "pagePath": "pages/monitor/dashboard/dashboard",
+        "text": "监控",
+        "iconPath": "assets/icons/monitor.png",
+        "selectedIconPath": "assets/icons/monitor-active.png"
+      },
+      {
+        "pagePath": "pages/user/profile/profile",
+        "text": "我的",
+        "iconPath": "assets/icons/user.png",
+        "selectedIconPath": "assets/icons/user-active.png"
+      }
+    ]
+  },
+  "networkTimeout": {
+    "request": 30000,
+    "downloadFile": 30000
+  },
+  "debug": false,
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

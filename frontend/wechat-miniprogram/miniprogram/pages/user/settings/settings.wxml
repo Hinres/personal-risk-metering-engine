@@ -1,0 +1,35 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载设置中..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取用户偏好" bind:retry="onRetry" />
+
+    <view wx:else class="settings-form">
+      <view class="card form-card">
+        <view class="form-row">
+          <text class="form-label">风险偏好</text>
+          <picker mode="selector" range="{{riskLevels}}" range-key="label" value="{{riskIndex}}" bindchange="onRiskChange">
+            <view class="picker-value">{{riskLevels[riskIndex].label}}</view>
+          </picker>
+        </view>
+
+        <view class="form-row">
+          <text class="form-label">接收预警推送</text>
+          <switch checked="{{notificationEnabled}}" bindchange="onNotificationChange" />
+        </view>
+
+        <view class="form-row">
+          <text class="form-label">使用微信头像/昵称</text>
+          <switch checked="{{useWechatAvatar}}" bindchange="onWechatAvatarChange" />
+        </view>
+      </view>
+
+      <view class="card action-card" bindtap="onClearCache">
+        <text class="action-text">清除缓存</text>
+        <text class="arrow">›</text>
+      </view>
+
+      <button class="btn btn-primary" bindtap="onSave" loading="{{saving}}" disabled="{{saving}}">保存</button>
+    </view>
+  </block>
+</view>

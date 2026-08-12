@@ -1,0 +1,82 @@
+{
+  "project": "PRME-个人风险计量引擎",
+  "architectureDocs": [
+    "/workspace/architecture/PRME-System-Architecture-v1.1.md",
+    "/workspace/architecture/PRME-Detailed-Design-v1.1.md",
+    "/workspace/architecture/PRME-Development-Plan-v1.1.md",
+    "/workspace/architecture/PRME-Development-Plan-v2.0.md"
+  ],
+  "startTime": "2026-06-02T20:00:00+08:00",
+  "currentPhase": "P2-开发已完成",
+  "prmeTracing": {
+    "status": "completed",
+    "sourceFiles": 105,
+    "sourceFilesAnnotated": 105,
+    "sourceCoverage": "100%",
+    "note": "仅对 src/ 下源文件添加 PRME 注释，测试文件未触碰"
+  },
+  "testing": {
+    "compilation": "passed"
+  },
+  "precisionTesting": {
+    "casesDesigned": 100,
+    "benchmarkScript": "/workspace/projects/personal-risk-metering-engine/calculation-engine/tests_dev/var_precision_benchmark.py",
+    "comparisonScript": "/workspace/projects/personal-risk-metering-engine/calculation-engine/tests_dev/var_backend_comparison.py",
+    "status": "scripts_ready_pending_execution"
+  },
+  "tasks": {
+    "P0-1": {
+      "id": "ARC-001",
+      "name": "编号体系打通",
+      "prme": "PRME-编号体系",
+      "status": "completed"
+    },
+    "P0-2": {
+      "id": "ARC-002",
+      "name": "测试执行验证",
+      "status": "pending"
+    },
+    "P0-3": {
+      "id": "ARC-003",
+      "name": "精度测试100组用例补充",
+      "status": "completed"
+    },
+    "P1-1": {
+      "id": "ARC-004",
+      "name": "数据模型命名统一",
+      "prme": "PRME-命名对齐",
+      "status": "completed"
+    },
+    "P1-2": {
+      "id": "ARC-005",
+      "name": "Web后台缺失页面补充",
+      "prme": "PRME-前端完善",
+      "status": "completed"
+    },
+    "P1-3": {
+      "id": "ARC-006",
+      "name": "等保二级控制点设计",
+      "prme": "PRME-等保合规",
+      "status": "completed"
+    },
+    "P2-1": {
+      "id": "ARC-007",
+      "name": "市场波动±5%检测验证",
+      "prme": "PRME-RM-002",
+      "status": "completed"
+    },
+    "P2-2": {
+      "id": "ARC-008",
+      "name": "持仓限制block模式验证",
+      "prme": "PRME-RM-003",
+      "status": "completed"
+    },
+    "P2-3": {
+      "id": "ARC-009",
+      "name": "兼容性测试补充",
+      "prme": "PRME-INFRA-006",
+      "status": "completed"
+    }
+  },
+  "lastUpdated": "2026-06-09T21:30:00+08:00"
+}

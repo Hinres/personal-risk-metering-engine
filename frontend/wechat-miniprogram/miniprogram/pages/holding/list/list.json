@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "empty-state": "/components/empty-state/empty-state",
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state"
+  },
+  "navigationBarTitleText": "持仓明细"
+}

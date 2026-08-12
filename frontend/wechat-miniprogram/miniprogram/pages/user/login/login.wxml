@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="form">
+    <view class="form-item">
+      <text class="label">用户名</text>
+      <input class="input" placeholder="输入用户名" value="{{username}}" bindinput="onInputUsername" />
+    </view>
+    <view class="form-item">
+      <text class="label">密码</text>
+      <input class="input" password placeholder="输入密码" value="{{password}}" bindinput="onInputPassword" />
+    </view>
+    <button class="btn-submit" bindtap="login" loading="{{loading}}">登录</button>
+    <button class="btn-wechat" bindtap="wxLogin">微信一键登录</button>
+  </view>
+</view>

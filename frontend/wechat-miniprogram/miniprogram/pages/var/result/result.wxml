@@ -1,0 +1,30 @@
+<view class="container">
+  <view class="title">VaR 计算结果</view>
+  
+  <view class="result-card">
+    <view class="var-value">{{varValue}}</view>
+    <view class="var-label">风险价值 (VaR)</view>
+    <view class="var-percent" style="color: {{varColor}}">{{varPercent}}</view>
+  </view>
+  
+  <view class="detail-card">
+    <view class="detail-title">计算详情</view>
+    <view class="detail-item" wx:for="{{details}}" wx:key="label">
+      <text class="detail-label">{{item.label}}</text>
+      <text class="detail-value">{{item.value}}</text>
+    </view>
+  </view>
+
+  <view class="chart-card" wx:if="{{distributionData.length > 0}}">
+    <risk-chart type="distribution" data="{{distributionData}}" title="风险分布" canvasId="distributionChart" height="{{300}}"></risk-chart>
+  </view>
+  
+  <view class="chart-card" wx:if="{{components.length > 0}}">
+    <risk-chart type="bar" data="{{components}}" title="风险因子贡献" canvasId="componentChart" height="{{300}}"></risk-chart>
+  </view>
+  
+  <view class="action-bar" wx:if="{{!isShared}}">
+    <button class="btn btn-primary" bindtap="goToGenerateReport">生成报告</button>
+    <button class="btn btn-secondary" bindtap="goToHistory">查看历史</button>
+  </view>
+</view>

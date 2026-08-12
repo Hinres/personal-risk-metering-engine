@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "监控规则",
+  "usingComponents": {
+    "loading-spinner": "/components/loading-spinner/loading-spinner",
+    "error-state": "/components/error-state/error-state"
+  }
+}

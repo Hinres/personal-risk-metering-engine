@@ -1,0 +1,64 @@
+<view class="container">
+  <view class="title">VaR 风险计量</view>
+  
+  <view class="form-card">
+    <view class="form-item">
+      <text class="label">投资组合</text>
+      <picker bindchange="onPortfolioChange" value="{{portfolioIndex}}" range="{{portfolioNames}}">
+        <view class="picker">{{portfolioNames[portfolioIndex] || '请选择组合'}}</view>
+      </picker>
+    </view>
+    
+    <view class="form-item">
+      <text class="label">计算方法</text>
+      <picker bindchange="onMethodChange" value="{{methodIndex}}" range="{{methods}}">
+        <view class="picker">{{methods[methodIndex]}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item" wx:if="{{showEstimation}}">
+      <text class="label">EVT 估计方法</text>
+      <picker bindchange="onEstimationChange" value="{{estimationIndex}}" range="{{estimationMethods}}">
+        <view class="picker">{{estimationMethods[estimationIndex]}}</view>
+      </picker>
+    </view>
+    
+    <view class="form-item stack">
+      <view class="row-header">
+        <text class="label">置信水平</text>
+        <view class="mode-switch">
+          <text class="mode {{confidenceMode === 'quick' ? 'active' : ''}}" data-mode="quick" bindtap="switchConfidenceMode">快捷</text>
+          <text class="mode {{confidenceMode === 'custom' ? 'active' : ''}}" data-mode="custom" bindtap="switchConfidenceMode">自定义</text>
+        </view>
+      </view>
+      <block wx:if="{{confidenceMode === 'quick'}}">
+        <picker bindchange="onConfidenceChange" value="{{confidenceIndex}}" range="{{confidenceLabels}}">
+          <view class="picker">{{confidenceLabels[confidenceIndex]}}</view>
+        </picker>
+      </block>
+      <block wx:else>
+        <input class="input" type="digit" placeholder="请输入 90.00–99.99 之间的百分数" value="{{confidenceInput}}" bindinput="onConfidenceInput" />
+      </block>
+    </view>
+    
+    <view class="form-item stack">
+      <view class="row-header">
+        <text class="label">时间周期</text>
+        <view class="mode-switch">
+          <text class="mode {{horizonMode === 'quick' ? 'active' : ''}}" data-mode="quick" bindtap="switchHorizonMode">快捷</text>
+          <text class="mode {{horizonMode === 'custom' ? 'active' : ''}}" data-mode="custom" bindtap="switchHorizonMode">自定义</text>
+        </view>
+      </view>
+      <block wx:if="{{horizonMode === 'quick'}}">
+        <picker bindchange="onHorizonChange" value="{{horizonIndex}}" range="{{horizonLabels}}">
+          <view class="picker">{{horizonLabels[horizonIndex]}}</view>
+        </picker>
+      </block>
+      <block wx:else>
+        <input class="input" type="number" placeholder="请输入 1–365 天" value="{{horizonInput}}" bindinput="onHorizonInput" />
+      </block>
+    </view>
+  </view>
+  
+  <button class="btn btn-primary" bindtap="calculateVaR" loading="{{loading}}">计算 VaR</button>
+</view>

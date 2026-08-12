@@ -1,0 +1,45 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载订阅信息..." />
+
+  <block wx:if="{{!loading}}">
+    <error-state wx:if="{{error}}" title="加载失败" desc="无法获取订阅信息" bind:retry="onRetry" />
+
+    <block wx:if="{{!error && subscription}}">
+      <view class="current-card card">
+        <view class="tier-badge">{{tierLabel}}</view>
+        <view class="expire-row">
+          <text class="label">到期日</text>
+          <text class="value">{{expiresAt}}</text>
+        </view>
+        <view class="benefits-section">
+          <text class="section-title">当前权益</text>
+          <view class="benefit-item" wx:for="{{benefits}}" wx:key="*this">
+            <text class="benefit-check">✓</text>
+            <text class="benefit-text">{{item}}</text>
+          </view>
+        </view>
+        <button class="btn btn-primary" bindtap="onRenew">续费（即将开放）</button>
+      </view>
+
+      <view class="compare-section">
+        <text class="section-title">权益对比</text>
+        <view class="compare-table">
+          <view class="table-row header">
+            <text class="table-cell">权益</text>
+            <text class="table-cell" wx:for="{{allTiers}}" wx:key="key">{{item.label}}</text>
+          </view>
+          <view class="table-row" wx:for="{{compareRows}}" wx:key="name">
+            <text class="table-cell">{{item.name}}</text>
+            <text class="table-cell" wx:for="{{allTiers}}" wx:key="key" wx:for-item="tier">{{item[tier.key]}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="notice">
+        <text>续费功能将在后续版本开放，敬请期待。</text>
+      </view>
+    </block>
+
+    <empty-state wx:if="{{!error && !subscription}}" icon="📦" title="暂无订阅信息" desc="当前账号未开通订阅服务" />
+  </block>
+</view>

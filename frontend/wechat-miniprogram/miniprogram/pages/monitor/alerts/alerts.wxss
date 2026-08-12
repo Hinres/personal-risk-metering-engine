@@ -1,0 +1,59 @@
+.container {
+  padding: 20rpx;
+  background: #f5f6fa;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+.list {
+  height: calc(100vh - 40rpx);
+}
+
+.card {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.06);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.title {
+  font-size: 30rpx;
+  font-weight: bold;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: 16rpx;
+}
+
+.badge {
+  font-size: 22rpx;
+  color: #fff;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  flex-shrink: 0;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.message {
+  font-size: 26rpx;
+  color: #2c3e50;
+}
+
+.date {
+  font-size: 24rpx;
+  color: #95a5a6;
+}
