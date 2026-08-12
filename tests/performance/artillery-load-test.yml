@@ -1,0 +1,60 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    # 预热阶段: 100 并发 5 分钟
+    - duration: 300
+      arrivalRate: 100
+    # 峰值阶段: 1000 并发 20 分钟
+    - duration: 1200
+      arrivalRate: 1000
+    # 稳定阶段: 500 并发 5 分钟
+    - duration: 300
+      arrivalRate: 500
+  defaults:
+    headers:
+      Content-Type: 'application/json'
+scenarios:
+  - name: 'Health Check'
+    requests:
+      - get:
+          url: '/health'
+  - name: 'Login'
+    requests:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            username: 'testuser'
+            password: 'Password123!'
+  - name: 'Get Portfolios'
+    requests:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            username: 'testuser'
+            password: 'Password123!'
+          capture:
+            - json: '$.data.token'
+              as: 'token'
+      - get:
+          url: '/api/v1/portfolios'
+          headers:
+            Authorization: 'Bearer {{ token }}'
+  - name: 'Calculate VaR'
+    requests:
+      - post:
+          url: '/api/v1/auth/login'
+          json:
+            username: 'testuser'
+            password: 'Password123!'
+          capture:
+            - json: '$.data.token'
+              as: 'token'
+      - post:
+          url: '/api/v1/var/calculate'
+          headers:
+            Authorization: 'Bearer {{ token }}'
+          json:
+            portfolio_id: 'test-portfolio'
+            confidence_level: 0.95
+            time_horizon: 1
+            method: 'historical'

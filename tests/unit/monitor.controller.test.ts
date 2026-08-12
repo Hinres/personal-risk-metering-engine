@@ -139,6 +139,55 @@ describe('monitor.controller', () => {
     });
   });
 
+  describe('getMonitorById', () => {
+    it('should return monitor detail with frontend-compatible fields', async () => {
+      const req = mockReq({}, { id: 'm1' });
+      const res = mockRes();
+      (MonitorService.getMonitor as jest.Mock).mockResolvedValue({
+        config_id: 'm1',
+        config_name: 'Test',
+        monitor_type: 'var_threshold',
+        threshold: 0.05,
+        operator: '>',
+        notification: { channels: ['app', 'wechat'] },
+        rules: { severity: 'high' },
+      });
+      await monitorController.getMonitorById(req as any, res);
+      expect(MonitorService.getMonitor).toHaveBeenCalledWith('m1', 'u1');
+      expect(successResponse).toHaveBeenCalledWith(res, expect.objectContaining({
+        monitor_name: 'Test',
+        monitor_id: 'm1',
+        threshold_value: 0.05,
+        comparison: '>',
+        severity: 'high',
+        notification_methods: ['app', 'wechat'],
+      }));
+    });
+
+    it('should return 404 when monitor not found', async () => {
+      const req = mockReq({}, { id: 'm1' });
+      const res = mockRes();
+      (MonitorService.getMonitor as jest.Mock).mockResolvedValue(null);
+      await monitorController.getMonitorById(req as any, res);
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Monitor not found', 404);
+    });
+
+    it('should return 400 for invalid id', async () => {
+      const req = mockReq({}, { id: '' });
+      const res = mockRes();
+      await monitorController.getMonitorById(req as any, res);
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Monitor ID is required', 400);
+    });
+
+    it('should handle errors', async () => {
+      const req = mockReq({}, { id: 'm1' });
+      const res = mockRes();
+      (MonitorService.getMonitor as jest.Mock).mockRejectedValue(new Error('fail'));
+      await monitorController.getMonitorById(req as any, res);
+      expect(errorResponse).toHaveBeenCalledWith(res, 'Failed to retrieve monitor', 500);
+    });
+  });
+
   describe('getMonitors', () => {
     it('should get monitors', async () => {
       const req = mockReq({}, {}, { portfolio_id: 'p1' });

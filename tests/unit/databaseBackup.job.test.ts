@@ -1,0 +1,196 @@
+/**
+ * [PRME-PA-001] databaseBackup.job 单元测试
+ * 测试范围: performBackup, cleanupOldBackups, verifyBackup, listBackups, scheduleDatabaseBackup
+ * 最后更新: 2026-07-08
+ */
+
+import fs from 'fs';
+import path from 'path';
+import cron from 'node-cron';
+import {
+  performBackup, cleanupOldBackups, verifyBackup, listBackups, scheduleDatabaseBackup,
+} from '../../src/jobs/databaseBackup.job';
+
+jest.mock('../../src/config/database', () => ({
+  AppDataSource: {
+    query: jest.fn().mockResolvedValue(undefined),
+  },
+}));
+
+jest.mock('../../src/utils/logger', () => ({
+  __esModule: true,
+  default: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+}));
+
+jest.mock('crypto', () => ({
+  createHash: jest.fn().mockReturnValue({
+    update: jest.fn().mockReturnThis(),
+    digest: jest.fn().mockReturnValue('testchecksum1234567890abcdef'),
+  }),
+}));
+
+jest.mock('node-cron', () => ({
+  schedule: jest.fn().mockReturnValue({ stop: jest.fn() }),
+}));
+
+const originalFs = { ...fs };
+
+describe('databaseBackup.job', () => {
+  let mockFs: any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockFs = {
+      existsSync: jest.fn().mockReturnValue(true),
+      mkdirSync: jest.fn(),
+      copyFileSync: jest.fn(),
+      statSync: jest.fn().mockReturnValue({ size: 1024, mtime: new Date() }),
+      readFileSync: jest.fn().mockReturnValue(Buffer.from('test')),
+      writeFileSync: jest.fn(),
+      readdirSync: jest.fn().mockReturnValue([]),
+      unlinkSync: jest.fn(),
+    };
+    (fs as any).existsSync = mockFs.existsSync;
+    (fs as any).mkdirSync = mockFs.mkdirSync;
+    (fs as any).copyFileSync = mockFs.copyFileSync;
+    (fs as any).statSync = mockFs.statSync;
+    (fs as any).readFileSync = mockFs.readFileSync;
+    (fs as any).writeFileSync = mockFs.writeFileSync;
+    (fs as any).readdirSync = mockFs.readdirSync;
+    (fs as any).unlinkSync = mockFs.unlinkSync;
+  });
+
+  afterEach(() => {
+    (fs as any).existsSync = originalFs.existsSync;
+    (fs as any).mkdirSync = originalFs.mkdirSync;
+    (fs as any).copyFileSync = originalFs.copyFileSync;
+    (fs as any).statSync = originalFs.statSync;
+    (fs as any).readFileSync = originalFs.readFileSync;
+    (fs as any).writeFileSync = originalFs.writeFileSync;
+    (fs as any).readdirSync = originalFs.readdirSync;
+    (fs as any).unlinkSync = originalFs.unlinkSync;
+  });
+
+  describe('performBackup', () => {
+    it('should create backup directory if not exists', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+      await performBackup();
+      expect(mockFs.mkdirSync).toHaveBeenCalled();
+    });
+
+    it('should perform backup successfully', async () => {
+      const result = await performBackup();
+      expect(result.is_valid).toBe(true);
+      expect(result.size_bytes).toBe(1024);
+      expect(mockFs.writeFileSync).toHaveBeenCalled();
+    });
+
+    it('should handle backup failure', async () => {
+      mockFs.copyFileSync.mockImplementation(() => { throw new Error('disk full'); });
+      await expect(performBackup()).rejects.toThrow('disk full');
+    });
+  });
+
+  describe('cleanupOldBackups', () => {
+    it('should return empty when backup dir not exists', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+      const result = await cleanupOldBackups();
+      expect(result.deleted).toHaveLength(0);
+      expect(result.kept).toBe(0);
+    });
+
+    it('should delete old backups', async () => {
+      const oldDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000);
+      mockFs.readdirSync.mockReturnValue(['backup1.sqlite', 'backup2.sqlite']);
+      mockFs.statSync.mockImplementation((f: string) =>
+        f.includes('backup1') ? { size: 100, mtime: oldDate } : { size: 100, mtime: new Date() }
+      );
+      const result = await cleanupOldBackups();
+      expect(result.deleted.length).toBeGreaterThan(0);
+    });
+
+    it('should delete meta files too', async () => {
+      mockFs.readdirSync.mockReturnValue(['backup1.sqlite']);
+      mockFs.statSync.mockReturnValue({ size: 100, mtime: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000) });
+      mockFs.existsSync.mockImplementation((f: string) => f === './data/backups' || f.endsWith('.meta.json'));
+      await cleanupOldBackups();
+      expect(mockFs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining('.meta.json'));
+    });
+
+    it('should handle delete errors', async () => {
+      mockFs.readdirSync.mockReturnValue(['backup1.sqlite']);
+      mockFs.statSync.mockReturnValue({ size: 100, mtime: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000) });
+      mockFs.unlinkSync.mockImplementation(() => { throw new Error('permission denied'); });
+      const result = await cleanupOldBackups();
+      expect(result.deleted).toHaveLength(0);
+    });
+  });
+
+  describe('verifyBackup', () => {
+    it('should return not found when file missing', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+      const result = await verifyBackup('test.sqlite');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('not found');
+    });
+
+    it('should detect checksum mismatch', async () => {
+      mockFs.existsSync.mockImplementation((f: string) => f.endsWith('.sqlite') || f.endsWith('.meta.json'));
+      mockFs.readFileSync.mockImplementation((f: string) =>
+        f.endsWith('.meta.json') ? JSON.stringify({ checksum: 'mismatch' }) : Buffer.from('test')
+      );
+      const result = await verifyBackup('test.sqlite');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('Checksum mismatch');
+    });
+
+    it('should detect empty file', async () => {
+      mockFs.existsSync.mockImplementation((f: string) => !f.endsWith('.meta.json'));
+      mockFs.statSync.mockReturnValue({ size: 0 });
+      const result = await verifyBackup('test.sqlite');
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('empty');
+    });
+
+    it('should verify valid backup', async () => {
+      mockFs.existsSync.mockImplementation((f: string) => !f.endsWith('.meta.json'));
+      mockFs.statSync.mockReturnValue({ size: 1024 });
+      const result = await verifyBackup('test.sqlite');
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe('listBackups', () => {
+    it('should return empty when dir not exists', async () => {
+      mockFs.existsSync.mockReturnValue(false);
+      const result = await listBackups();
+      expect(result).toHaveLength(0);
+    });
+
+    it('should list backups with meta', async () => {
+      mockFs.readdirSync.mockReturnValue(['backup1.sqlite']);
+      mockFs.existsSync.mockImplementation((f: string) => f === './data/backups' || f.endsWith('.meta.json'));
+      mockFs.readFileSync.mockReturnValue(JSON.stringify({ checksum: 'abc', is_valid: true }));
+      const result = await listBackups();
+      expect(result).toHaveLength(1);
+      expect(result[0].is_valid).toBe(true);
+    });
+
+    it('should handle meta parse error', async () => {
+      mockFs.readdirSync.mockReturnValue(['backup1.sqlite']);
+      mockFs.existsSync.mockImplementation((f: string) => f === './data/backups' || f.endsWith('.meta.json'));
+      mockFs.readFileSync.mockReturnValue('invalid json');
+      const result = await listBackups();
+      expect(result).toHaveLength(1);
+      expect(result[0].is_valid).toBe(false);
+    });
+  });
+
+  describe('scheduleDatabaseBackup', () => {
+    it('should schedule cron job', () => {
+      const task = scheduleDatabaseBackup();
+      expect(cron.schedule).toHaveBeenCalledWith('0 2 * * *', expect.any(Function), expect.objectContaining({ scheduled: true }));
+      expect(task).toBeDefined();
+    });
+  });
+});

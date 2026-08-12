@@ -1,0 +1,249 @@
+/**
+ * [PRME-INFRA-004] 市场数据
+ * 文件: marketData.service.ts
+ * 需求描述: 市场数据功能实现
+ * 最后更新: 2026-06-09
+ */
+import { AppDataSource } from '../config/database';
+import { MarketData } from '../models/MarketData';
+import { Holding } from '../models/Holding';
+import axios from 'axios';
+import logger from '../utils/logger';
+
+const marketRepo = () => AppDataSource.getRepository(MarketData);
+const holdingRepo = () => AppDataSource.getRepository(Holding);
+
+const TUSHARE_API_URL = 'http://api.tushare.pro';
+const getTushareToken = () => process.env.TUSHARE_TOKEN || '';
+
+export class MarketDataService {
+  static async getLatestPrice(symbol: string) {
+    const latest = await marketRepo().findOne({
+      where: { symbol },
+      order: { trade_date: 'DESC' },
+    });
+    return latest?.close_price || null;
+  }
+
+  static async getHistory(symbol: string, days = 30) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    return marketRepo().createQueryBuilder()
+      .where('symbol = :symbol', { symbol })
+      .andWhere('trade_date >= :cutoff', { cutoff })
+      .orderBy('trade_date', 'DESC')
+      .take(days)
+      .getMany();
+  }
+
+  static async getReturnsMatrix(symbols: string[], days = 252) {
+    const priceData: Record<string, number[]> = {};
+    
+    for (const symbol of symbols) {
+      const history = await this.getHistory(symbol, days + 1);
+      const prices = history.map(h => parseFloat(h.close_price?.toString() || '0')).reverse();
+      if (prices.length < 2) {
+        throw new Error(`Insufficient historical data for ${symbol}`);
+      }
+      const returns = [];
+      for (let i = 1; i < prices.length; i++) {
+        returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+      }
+      priceData[symbol] = returns;
+    }
+    
+    const minLength = Math.min(...Object.values(priceData).map(r => r.length));
+    const matrix: number[][] = [];
+    for (let i = 0; i < minLength; i++) {
+      const row: number[] = [];
+      for (const symbol of symbols) {
+        row.push(priceData[symbol][i]);
+      }
+      matrix.push(row);
+    }
+    
+    return matrix;
+  }
+
+  /**
+   * 调用 Tushare API 获取股票基础信息
+   */
+  static async getStockBasic() {
+    if (!getTushareToken()) {
+      logger.warn('TUSHARE_TOKEN not set, skipping stock basic sync');
+      return [];
+    }
+    try {
+      const res = await axios.post(TUSHARE_API_URL, {
+        token: getTushareToken(),
+        api_name: 'stock_basic',
+        params: { exchange: '', list_status: 'L' },
+        fields: 'ts_code,symbol,name,area,industry,market,list_date',
+      });
+      if (res.data?.data?.fields && res.data?.data?.items) {
+        const fields = res.data.data.fields;
+        const items = res.data.data.items;
+        return items.map((item: any[]) => {
+          const row: Record<string, any> = {};
+          fields.forEach((f: string, i: number) => row[f] = item[i]);
+          return row;
+        });
+      }
+      return [];
+    } catch (e: any) {
+      logger.error('Tushare stock_basic failed', { error: e.message });
+      return [];
+    }
+  }
+
+  /**
+   * 调用 Tushare API 获取日线行情
+   */
+  static async getDailyQuote(symbol: string, startDate?: string, endDate?: string) {
+    if (!getTushareToken()) {
+      logger.warn('TUSHARE_TOKEN not set, skipping daily quote sync');
+      return [];
+    }
+    const tsCode = symbol.includes('.') ? symbol : this.toTsCode(symbol);
+    const params: Record<string, string> = { ts_code: tsCode };
+    if (startDate) params.start_date = startDate;
+    if (endDate) params.end_date = endDate;
+    try {
+      const res = await axios.post(TUSHARE_API_URL, {
+        token: getTushareToken(),
+        api_name: 'daily',
+        params,
+        fields: 'ts_code,trade_date,open,high,low,close,vol,amount',
+      });
+      if (res.data?.data?.fields && res.data?.data?.items) {
+        const fields = res.data.data.fields;
+        const items = res.data.data.items;
+        return items.map((item: any[]) => {
+          const row: Record<string, any> = {};
+          fields.forEach((f: string, i: number) => row[f] = item[i]);
+          return row;
+        });
+      }
+      return [];
+    } catch (e: any) {
+      logger.error('Tushare daily failed', { error: e.message, symbol });
+      return [];
+    }
+  }
+
+  private static toTsCode(symbol: string): string {
+    const s = symbol.trim();
+    if (s.startsWith('6')) return `${s}.SH`;
+    if (s.startsWith('0') || s.startsWith('3')) return `${s}.SZ`;
+    if (s.startsWith('8') || s.startsWith('4')) return `${s}.BJ`;
+    return s;
+  }
+
+  private static fromTsCode(tsCode: string): string {
+    return tsCode.split('.')[0];
+  }
+
+  /**
+   * 同步指定股票列表的市场数据（从 Tushare）
+   */
+  static async syncFromTushare(symbols: string[]) {
+    if (!getTushareToken()) {
+      logger.warn('TUSHARE_TOKEN not set, cannot sync from Tushare');
+      return { synced: 0, failed: symbols.length };
+    }
+    logger.info(`Syncing ${symbols.length} symbols from Tushare`);
+    let synced = 0;
+    let failed = 0;
+    const today = new Date();
+    const endDate = today.toISOString().slice(0, 10).replace(/-/g, '');
+    const start = new Date(today);
+    start.setDate(start.getDate() - 365);
+    const startDate = start.toISOString().slice(0, 10).replace(/-/g, '');
+
+    for (const symbol of symbols) {
+      try {
+        const quotes = await this.getDailyQuote(symbol, startDate, endDate);
+        if (!quotes.length) {
+          failed++;
+          continue;
+        }
+        const entities = quotes.map((q: any) => ({
+          symbol: this.fromTsCode(q.ts_code || symbol),
+          trade_date: q.trade_date ? `${q.trade_date.slice(0, 4)}-${q.trade_date.slice(4, 6)}-${q.trade_date.slice(6, 8)}` : new Date(),
+          open_price: q.open,
+          high_price: q.high,
+          low_price: q.low,
+          close_price: q.close,
+          volume: q.vol,
+          turnover: q.amount,
+          security_type: 'stock',
+          exchange: this.exchangeFromSymbol(symbol),
+        }));
+        await this.saveMarketData(entities);
+        synced++;
+      } catch (e: any) {
+        logger.error(`Sync failed for ${symbol}`, { error: e.message });
+        failed++;
+      }
+    }
+    logger.info(`Tushare sync completed: ${synced} synced, ${failed} failed`);
+    return { synced, failed };
+  }
+
+  private static exchangeFromSymbol(symbol: string): string {
+    const s = symbol.trim();
+    if (s.startsWith('6')) return 'SH';
+    if (s.startsWith('0') || s.startsWith('3')) return 'SZ';
+    if (s.startsWith('8') || s.startsWith('4')) return 'BJ';
+    return 'SH';
+  }
+
+  /**
+   * 获取所有需要跟踪的 symbols（从 holdings 表去重）
+   */
+  static async getTrackedSymbols(): Promise<string[]> {
+    const holdings = await holdingRepo().find();
+    const symbols = [...new Set(holdings.map(h => h.symbol))];
+    return symbols;
+  }
+
+  static async saveMarketData(data: Partial<MarketData>[]) {
+    const repo = marketRepo();
+    if (!data.length) return 0;
+
+    // 去重：查询已存在的记录，避免重复插入
+    const symbols = [...new Set(data.map(d => d.symbol).filter(Boolean) as string[])];
+    const dates = [...new Set(data.map(d => d.trade_date).filter(Boolean))];
+
+    if (symbols.length && dates.length) {
+      const existing = await repo.createQueryBuilder('md')
+        .select(['md.symbol', 'md.trade_date'])
+        .where('md.symbol IN (:...symbols)', { symbols })
+        .andWhere('md.trade_date IN (:...dates)', { dates })
+        .getMany();
+
+      const existingSet = new Set(
+        existing.map(e => {
+          const d = e.trade_date instanceof Date
+            ? e.trade_date.toISOString().slice(0, 10)
+            : String(e.trade_date).slice(0, 10);
+          return `${e.symbol}|${d}`;
+        })
+      );
+
+      const newData = data.filter(d => {
+        const dateStr = d.trade_date instanceof Date
+          ? d.trade_date.toISOString().slice(0, 10)
+          : String(d.trade_date).slice(0, 10);
+        return !existingSet.has(`${d.symbol}|${dateStr}`);
+      });
+
+      if (!newData.length) return 0;
+      data = newData;
+    }
+
+    const entities = data.map(d => repo.create(d));
+    await repo.save(entities);
+    return entities.length;
+  }
+}

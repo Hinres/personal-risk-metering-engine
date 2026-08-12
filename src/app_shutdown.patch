@@ -1,0 +1,65 @@
+--- a/src/app.ts
++++ b/src/app.ts
+@@ -85,19 +85,46 @@ app.use((req: Request, res: Response) => {
+ 
+ // Error handling middleware
+ app.use(errorHandler);
+ 
++import { closeDatabase } from './config/database';
++import { getRedis } from './config/redis';
++
+ // Start server
+ const startServer = async () => {
+   try {
+     // Connect database
+     await AppDataSource.initialize();
+     logger.info('Database connected successfully');
+ 
+     // Connect Redis
+     await connectRedis();
+ 
+     // Initialize cron jobs
+     initializeJobs();
+ 
+-    app.listen(PORT, () => {
++    const server = app.listen(PORT, () => {
+       logger.info(`Server running on port ${PORT}`);
+       logger.info(`Health check: http://localhost:${PORT}/health`);
+     });
++
++    // Graceful Shutdown
++    const gracefulShutdown = async (signal: string) => {
++      logger.info(`Received ${signal}, starting graceful shutdown...`);
++      
++      server.close(async () => {
++        logger.info('HTTP server closed');
++        
++        try {
++          await closeDatabase();
++          logger.info('Database connection closed');
++          
++          const redisClient = getRedis();
++          if (redisClient.isOpen) {
++            await redisClient.quit();
++            logger.info('Redis connection closed');
++          }
++          
++          logger.info('Graceful shutdown completed');
++          process.exit(0);
++        } catch (err) {
++          logger.error('Error during graceful shutdown:', err);
++          process.exit(1);
++        }
++      });
++      
++      setTimeout(() => {
++        logger.error('Forced shutdown after 30 seconds timeout');
++        process.exit(1);
++      }, 30000);
++    };
++
++    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
++    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+   } catch (error) {
+     logger.error('Failed to start server', error);
+     process.exit(1);
