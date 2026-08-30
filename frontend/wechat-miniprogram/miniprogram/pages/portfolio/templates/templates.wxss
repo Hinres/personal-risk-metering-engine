@@ -1,0 +1,65 @@
+.container {
+  padding: 20rpx;
+  background: #f5f6fa;
+  min-height: 100vh;
+}
+.header {
+  padding: 20rpx;
+}
+.title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+.subtitle {
+  font-size: 26rpx;
+  color: #7f8c8d;
+  margin-top: 8rpx;
+}
+.list {
+  margin-top: 20rpx;
+}
+.loading, .empty {
+  text-align: center;
+  padding: 60rpx;
+  color: #7f8c8d;
+}
+.card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.05);
+}
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+.name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #1a1a2e;
+}
+.risk {
+  font-size: 24rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+.risk.conservative { background: #d4edda; color: #155724; }
+.risk.moderate { background: #fff3cd; color: #856404; }
+.risk.aggressive { background: #f8d7da; color: #721c24; }
+.desc {
+  font-size: 26rpx;
+  color: #555;
+  margin-bottom: 16rpx;
+}
+.allocation {
+  font-size: 24rpx;
+  color: #7f8c8d;
+}
+.card-footer {
+  margin-top: 20rpx;
+  text-align: right;
+}

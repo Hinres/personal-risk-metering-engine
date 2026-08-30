@@ -1,0 +1,31 @@
+<view class="container">
+  <view class="header">
+    <text class="title">VaR 计算历史</text>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..." />
+  <error-state wx:if="{{error}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry" />
+
+  <view wx:if="{{!loading && !error && !history.length}}" class="empty">暂无计算记录</view>
+
+  <view wx:for="{{history}}" wx:key="calculation_id" class="history-card">
+    <view class="history-header">
+      <text class="history-date">{{item.calculated_at_fmt}}</text>
+      <text class="history-method">{{item.method_label}}</text>
+    </view>
+    <view class="history-body">
+      <view class="history-item">
+        <text class="label">VaR 金额</text>
+        <text class="value">{{item.var_value_fmt}}</text>
+      </view>
+      <view class="history-item">
+        <text class="label">VaR 比率</text>
+        <text class="value">{{item.var_percentage_fmt}}</text>
+      </view>
+      <view class="history-item">
+        <text class="label">置信水平</text>
+        <text class="value">{{item.confidence_level_fmt}}</text>
+      </view>
+    </view>
+  </view>
+</view>

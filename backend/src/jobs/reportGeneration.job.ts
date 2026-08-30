@@ -35,4 +35,4 @@ export function scheduleReportGeneration(): ReturnType<typeof cron.schedule> {
       logger.error('Report generation job failed', { error: error.message });
     }
   });
-};
+}

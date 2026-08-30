@@ -1,0 +1,22 @@
+<view class="container">
+  <view class="header">
+    <text class="title">VaR 参数预设</text>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..." />
+  <error-state wx:if="{{error}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry" />
+
+  <view wx:if="{{!loading && !error && !presets.length}}" class="empty">暂无预设</view>
+
+  <view wx:for="{{presets}}" wx:key="name" class="preset-card">
+    <view class="preset-header">
+      <text class="preset-name">{{item.name}}</text>
+      <text class="preset-delete" data-name="{{item.name}}" bindtap="deletePreset">删除</text>
+    </view>
+    <view class="preset-body">
+      <text class="preset-meta">方法：{{item.method_label}}</text>
+      <text class="preset-meta">置信水平：{{item.confidence_label}}</text>
+      <text class="preset-meta">持有期：{{item.horizon_label}}</text>
+    </view>
+  </view>
+</view>

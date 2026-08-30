@@ -2,6 +2,11 @@ const api = require('../../../utils/api');
 
 const FALLBACK_HELP = [
   {
+    category: '视频教程',
+    title: '视频教程',
+    content: '点击展开查看系统内置的投资风险教育视频。'
+  },
+  {
     category: '功能说明',
     title: '功能说明',
     content: 'PRME（个人风险计量引擎）为您提供投资组合管理、VaR 风险价值计算、压力测试、风险监控、组合估值与报告生成等工具。所有计算结果均基于历史市场数据与统计模型，仅供风险参考。'
@@ -21,12 +26,14 @@ const FALLBACK_HELP = [
 Page({
   data: {
     categories: [],
+    videos: [],
+    videosExpanded: false,
     loading: true,
     error: false
   },
 
   onLoad() {
-    this.loadHelp();
+    this.loadHelp().then(() => this.loadTutorials());
   },
 
   async loadHelp() {
@@ -62,6 +69,45 @@ Page({
     const categories = this.data.categories.slice();
     categories[index].expanded = !categories[index].expanded;
     this.setData({ categories });
+  },
+
+  async loadTutorials() {
+    try {
+      const res = await api.get('/tutorials');
+      const data = res.data || res;
+      const list = (data.list || []).slice(0, 20);
+      this.setData({ videos: list });
+      if (list.length > 0) {
+        const videoCategory = {
+          title: '视频教程',
+          content: list.map(v => `• ${v.title}${v.description ? ' — ' + v.description : ''}`).join('\n'),
+          expanded: false
+        };
+        const categories = this.data.categories.slice();
+        const idx = categories.findIndex(c => c.title === '视频教程');
+        if (idx >= 0) {
+          categories[idx] = videoCategory;
+        } else {
+          categories.unshift(videoCategory);
+        }
+        this.setData({ categories });
+      }
+    } catch (e) {
+      console.warn('Load tutorials failed', e);
+    }
+  },
+
+  toggleVideoSection() {
+    this.setData({ videosExpanded: !this.data.videosExpanded });
+  },
+
+  openVideo(e) {
+    const { url } = e.currentTarget.dataset;
+    if (!url) return;
+    wx.setClipboardData({
+      data: url,
+      success: () => wx.showToast({ title: '视频链接已复制', icon: 'success' })
+    });
   },
 
   onRetry() {

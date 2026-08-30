@@ -8,7 +8,18 @@
 import path from 'path';
 if (process.env.NODE_ENV !== 'test') {
   const dotenv = require('dotenv');
-  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  const fs = require('fs');
+  const envFile = process.env.NODE_ENV
+    ? `.env.${process.env.NODE_ENV}`
+    : '.env';
+  const envPath = path.resolve(__dirname, '..', envFile);
+  const defaultEnvPath = path.resolve(__dirname, '../.env');
+  // 按环境加载对应 .env 文件；不存在则回退到默认 .env
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+  } else {
+    dotenv.config({ path: defaultEnvPath });
+  }
 }
 
 import 'reflect-metadata';

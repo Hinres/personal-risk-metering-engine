@@ -1,6 +1,27 @@
 const api = require('../../../utils/api');
 const { MONITOR_TYPES, COMPARISONS, SEVERITY_LEVELS } = require('../../../utils/constants');
 
+// 前端比较操作符 key → 后端符号
+const COMPARISON_TO_OPERATOR = {
+  gt: '>',
+  lt: '<',
+  gte: '>=',
+  lte: '<=',
+  eq: '=',
+};
+
+// 后端符号 → 前端比较操作符 key
+const OPERATOR_TO_COMPARISON = {
+  '>': 'gt',
+  '<': 'lt',
+  '>=': 'gte',
+  '<=': 'lte',
+  '=': 'eq',
+};
+
+// v1.3 新增监控类型：后端使用固定阈值/逻辑，前端不强制输入阈值
+const SPECIALIZED_MONITOR_TYPES = ['stop_loss', 'risk_event', 'volatility_spike'];
+
 const NOTIFICATION_METHODS = [
   { key: 'app_push', label: '应用推送' },
   { key: 'wechat', label: '微信通知' },
@@ -20,6 +41,7 @@ const buildNotificationChecked = (methods) => {
 Page({
   data: {
     monitorId: '',
+    portfolioId: '',
     isEdit: false,
     monitorName: '',
     monitorTypeIndex: 0,
@@ -39,6 +61,7 @@ Page({
   },
 
   onLoad(options) {
+    this.setData({ portfolioId: options.portfolioId || '' });
     if (options.id) {
       this.setData({ monitorId: options.id, isEdit: true });
       this.loadDetail(options.id);
@@ -56,7 +79,8 @@ Page({
       const res = await api.get(`/monitors/${id}`);
       const d = res.data || res;
       const monitorTypeIndex = MONITOR_TYPES.findIndex(t => t.key === d.monitor_type);
-      const comparisonIndex = COMPARISONS.findIndex(c => c.key === d.comparison);
+      const comparisonKey = OPERATOR_TO_COMPARISON[d.comparison] || d.comparison;
+      const comparisonIndex = COMPARISONS.findIndex(c => c.key === comparisonKey);
       const severityIndex = SEVERITY_LEVELS.findIndex(s => s.key === d.severity);
       const methods = d.notification_methods || [];
       this.setData({
@@ -111,16 +135,24 @@ Page({
     });
   },
 
+  isSpecializedType() {
+    const type = MONITOR_TYPES[this.data.monitorTypeIndex]?.key;
+    return SPECIALIZED_MONITOR_TYPES.includes(type);
+  },
+
   validate() {
     if (!this.data.monitorName.trim()) {
       return '请输入规则名称';
     }
-    if (!this.data.thresholdValue) {
-      return '请输入阈值';
-    }
-    const value = parseFloat(this.data.thresholdValue);
-    if (Number.isNaN(value)) {
-      return '阈值必须为数字';
+    // v1.3 新增监控类型阈值由后端固定，前端不强制输入
+    if (!this.isSpecializedType()) {
+      if (!this.data.thresholdValue) {
+        return '请输入阈值';
+      }
+      const value = parseFloat(this.data.thresholdValue);
+      if (Number.isNaN(value)) {
+        return '阈值必须为数字';
+      }
     }
     return null;
   },
@@ -132,14 +164,19 @@ Page({
       return;
     }
 
+    const monitorType = MONITOR_TYPES[this.data.monitorTypeIndex].key;
+    const comparisonKey = COMPARISONS[this.data.comparisonIndex].key;
     const payload = {
       monitor_name: this.data.monitorName.trim(),
-      monitor_type: MONITOR_TYPES[this.data.monitorTypeIndex].key,
-      threshold_value: parseFloat(this.data.thresholdValue),
-      comparison: COMPARISONS[this.data.comparisonIndex].key,
+      monitor_type: monitorType,
+      threshold_value: this.isSpecializedType() ? 0 : parseFloat(this.data.thresholdValue),
+      comparison: COMPARISON_TO_OPERATOR[comparisonKey] || comparisonKey,
       severity: SEVERITY_LEVELS[this.data.severityIndex].key,
       notification_methods: this.data.notificationMethods
     };
+    if (this.data.portfolioId) {
+      payload.portfolio_id = this.data.portfolioId;
+    }
 
     this.setData({ submitting: true });
     try {

@@ -52,6 +52,10 @@
           <view class="action-icon">📄</view>
           <text>报告</text>
         </view>
+        <view class="action-btn" bindtap="goToMarketVolatility">
+          <view class="action-icon">📈</view>
+          <text>市场波动</text>
+        </view>
       </view>
     </block>
   </block>

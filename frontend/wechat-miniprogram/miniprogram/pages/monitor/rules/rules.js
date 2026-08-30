@@ -31,10 +31,15 @@ const formatThreshold = (item) => {
 Page({
   data: {
     monitors: [],
+    portfolioId: '',
     loading: false,
     refreshing: false,
     error: false,
     errorMsg: ''
+  },
+
+  onLoad(options) {
+    this.setData({ portfolioId: options.portfolioId || '' });
   },
 
   onShow() {
@@ -47,7 +52,9 @@ Page({
   async loadMonitors() {
     this.setData({ loading: true, error: false, errorMsg: '' });
     try {
-      const res = await api.get('/monitors');
+      const params = {};
+      if (this.data.portfolioId) params.portfolio_id = this.data.portfolioId;
+      const res = await api.get('/monitors', params);
       const monitors = (res.data || []).map(m => {
         const id = m.id || m.monitor_id;
         return {
@@ -110,7 +117,8 @@ Page({
   },
 
   goToEdit(id) {
-    wx.navigateTo({ url: `/pages/monitor/create/create?id=${id}` });
+    const query = `id=${id}${this.data.portfolioId ? `&portfolioId=${this.data.portfolioId}` : ''}`;
+    wx.navigateTo({ url: `/pages/monitor/create/create?${query}` });
   },
 
   deleteMonitor(id) {
@@ -132,6 +140,9 @@ Page({
   },
 
   goToCreate() {
-    wx.navigateTo({ url: '/pages/monitor/create/create' });
+    const url = this.data.portfolioId
+      ? `/pages/monitor/create/create?portfolioId=${this.data.portfolioId}`
+      : '/pages/monitor/create/create';
+    wx.navigateTo({ url });
   }
 });

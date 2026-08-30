@@ -52,7 +52,7 @@ export class AuthService {
     if (PASSWORD_POLICY.requireDigit && !/\d/.test(password)) {
       errors.push('密码必须包含至少一个数字');
     }
-    if (PASSWORD_POLICY.requireSpecialChar && !/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (PASSWORD_POLICY.requireSpecialChar && !/[!@#$%^&*()_+\-={};':"\\|,.<>/?]/.test(password)) {
       errors.push('密码必须包含至少一个特殊字符');
     }
     return { valid: errors.length === 0, errors };

@@ -1,0 +1,55 @@
+<view class="container">
+  <view class="header">
+    <text class="title">独立 VaR 计算器</text>
+    <text class="subtitle">不保存到组合，快速估算风险价值</text>
+  </view>
+
+  <view class="form-card">
+    <view class="form-item">
+      <text class="label">计算方法</text>
+      <picker mode="selector" range="{{VAR_METHODS}}" range-key="label" value="{{methodIndex}}" bindchange="onMethodChange">
+        <view class="picker">{{VAR_METHODS[methodIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="label">置信水平</text>
+      <picker mode="selector" range="{{CONFIDENCE_OPTIONS}}" range-key="label" value="{{confidenceIndex}}" bindchange="onConfidenceChange">
+        <view class="picker">{{CONFIDENCE_OPTIONS[confidenceIndex].label}}</view>
+      </picker>
+    </view>
+
+    <view class="form-item">
+      <text class="label">持有期</text>
+      <picker mode="selector" range="{{HORIZON_OPTIONS}}" range-key="label" value="{{horizonIndex}}" bindchange="onHorizonChange">
+        <view class="picker">{{HORIZON_OPTIONS[horizonIndex].label}}</view>
+      </picker>
+    </view>
+  </view>
+
+  <view class="section-title">持仓列表</view>
+  <view wx:for="{{holdings}}" wx:key="index" class="holding-row">
+    <input placeholder="代码" data-index="{{index}}" data-field="symbol" value="{{item.symbol}}" bindinput="onHoldingInput" />
+    <input placeholder="数量" type="digit" data-index="{{index}}" data-field="quantity" value="{{item.quantity}}" bindinput="onHoldingInput" />
+    <input placeholder="成本价" type="digit" data-index="{{index}}" data-field="cost_price" value="{{item.cost_price}}" bindinput="onHoldingInput" />
+    <text class="remove-btn" data-index="{{index}}" bindtap="removeHolding">删除</text>
+  </view>
+  <button class="btn-secondary" bindtap="addHolding">+ 添加持仓</button>
+
+  <button class="btn-submit" bindtap="calculate" loading="{{loading}}" disabled="{{loading}}">开始计算</button>
+
+  <view wx:if="{{result}}" class="result-card">
+    <view class="result-row">
+      <text class="label">VaR 金额</text>
+      <text class="value">{{result.var_value}}</text>
+    </view>
+    <view class="result-row">
+      <text class="label">VaR 比率</text>
+      <text class="value">{{result.var_percentage}}</text>
+    </view>
+    <view class="result-row">
+      <text class="label">置信水平</text>
+      <text class="value">{{result.confidence_level}}</text>
+    </view>
+  </view>
+</view>

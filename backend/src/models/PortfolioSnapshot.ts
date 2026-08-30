@@ -37,6 +37,42 @@ export class PortfolioSnapshot {
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
   cumulative_return!: number | null;
 
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  total_return!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  annual_return!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  volatility!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  sharpe_ratio!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  sortino_ratio!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  max_drawdown!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  calmar_ratio!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  treynor_ratio!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  beta!: number | null;
+
+  @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
+  risk_free_rate!: number | null;
+
+  @JsonColumn({ nullable: true })
+  asset_allocation!: Record<string, any> | null;
+
+  @JsonColumn({ nullable: true })
+  sector_allocation!: Record<string, any> | null;
+
   @JsonColumn({ nullable: true })
   holdings_snapshot!: Record<string, any> | null;
 

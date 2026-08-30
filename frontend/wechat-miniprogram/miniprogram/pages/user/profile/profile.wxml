@@ -56,6 +56,11 @@
           <text class="arrow">›</text>
         </view>
 
+        <view class="menu-item" bindtap="goToTools">
+          <text class="label">投资工具</text>
+          <text class="arrow">›</text>
+        </view>
+
         <view class="menu-item switch-item">
           <text class="label">使用微信头像/昵称</text>
           <switch checked="{{useWechatAvatar}}" bindchange="onToggleWechatAvatar" />

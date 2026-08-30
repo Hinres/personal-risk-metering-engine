@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="header">
+    <text class="title">套用模板</text>
+    <text class="subtitle">基于模板快速创建新组合</text>
+  </view>
+
+  <view class="form-card">
+    <view class="form-row">
+      <text class="label">组合名称</text>
+      <input class="input" value="{{name}}" bindinput="onNameInput" placeholder="请输入组合名称" />
+    </view>
+    <view class="form-row">
+      <text class="label">描述</text>
+      <input class="input" value="{{description}}" bindinput="onDescInput" placeholder="可选" />
+    </view>
+  </view>
+
+  <button class="btn-primary" bindtap="apply" disabled="{{submitting}}">
+    {{submitting ? '创建中...' : '创建组合'}}
+  </button>
+</view>

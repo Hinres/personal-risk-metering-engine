@@ -31,9 +31,30 @@
 
     <view class="actions">
       <button class="btn" bindtap="goToAddHolding">添加持仓</button>
+      <button class="btn" bindtap="goToImport">批量导入</button>
       <button class="btn" bindtap="goToVaR">VaR计算</button>
       <button class="btn" bindtap="goToStress">压力测试</button>
       <button class="btn" bindtap="goToMonitors">监控规则</button>
+    </view>
+
+    <view class="section-title">深度分析</view>
+    <view class="analysis-grid">
+      <view class="analysis-item" bindtap="goToStructure">
+        <view class="analysis-icon">🏗️</view>
+        <text>结构分析</text>
+      </view>
+      <view class="analysis-item" bindtap="goToAttribution">
+        <view class="analysis-icon">📊</view>
+        <text>归因分析</text>
+      </view>
+      <view class="analysis-item" bindtap="goToHistory">
+        <view class="analysis-icon">📈</view>
+        <text>历史对比</text>
+      </view>
+      <view class="analysis-item" bindtap="goToOptimize">
+        <view class="analysis-icon">⚙️</view>
+        <text>优化建议</text>
+      </view>
     </view>
 
     <view class="section-title">持仓明细</view>

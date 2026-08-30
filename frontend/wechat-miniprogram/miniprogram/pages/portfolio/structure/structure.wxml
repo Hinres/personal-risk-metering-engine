@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="loading" wx:if="{{loading && !structure}}">加载中...</view>
+  <view class="error" wx:if="{{error}}">
+    <text>{{errorMsg}}</text>
+    <button size="mini" bindtap="onRetry">重试</button>
+  </view>
+  <view wx:if="{{structure}}">
+    <view class="section">
+      <view class="section-title">行业分布</view>
+      <view class="item" wx:for="{{structure.sector_allocation}}" wx:key="index">
+        <text>{{item.sector || '未分类'}}</text>
+        <text>{{(item.weight * 100).toFixed(2)}}%</text>
+      </view>
+    </view>
+    <view class="section">
+      <view class="section-title">资产分布</view>
+      <view class="item" wx:for="{{structure.asset_allocation}}" wx:key="index">
+        <text>{{item.type || '其他'}}</text>
+        <text>{{(item.weight * 100).toFixed(2)}}%</text>
+      </view>
+    </view>
+  </view>
+</view>

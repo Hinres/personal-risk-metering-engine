@@ -214,3 +214,155 @@ page {
   padding-bottom: constant(safe-area-inset-bottom);
   padding-bottom: env(safe-area-inset-bottom);
 }
+
+/* 通用数据展示卡片 */
+.summary-card,
+.history-card,
+.preset-card,
+.result-card,
+.sector-row,
+.snapshot-row {
+  background: var(--bg-secondary);
+  border-radius: 16rpx;
+  padding: 24rpx 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: var(--shadow);
+}
+
+.summary-row,
+.history-item,
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.summary-row:last-child,
+.history-item:last-child,
+.result-row:last-child {
+  border-bottom: none;
+}
+
+.summary-row .label,
+.history-item .label,
+.result-row .label {
+  color: var(--text-secondary);
+  font-size: 28rpx;
+}
+
+.summary-row .value,
+.history-item .value,
+.result-row .value {
+  color: var(--text-primary);
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 30rpx 0 20rpx;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 60rpx 0;
+  font-size: 28rpx;
+}
+
+.history-header,
+.preset-header,
+.snapshot-main,
+.sector-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.history-date,
+.snapshot-date,
+.sector-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.history-method,
+.snapshot-value,
+.sector-return {
+  font-size: 28rpx;
+  color: var(--accent-color);
+}
+
+.history-body,
+.preset-body,
+.sector-meta,
+.snapshot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  font-size: 24rpx;
+  color: var(--text-secondary);
+}
+
+.preset-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.preset-delete {
+  font-size: 26rpx;
+  color: var(--danger-color);
+}
+
+.period-picker {
+  font-size: 28rpx;
+  color: var(--accent-color);
+  padding: 8rpx 16rpx;
+  background: rgba(52, 152, 219, 0.1);
+  border-radius: 8rpx;
+}
+
+.holding-row {
+  display: flex;
+  gap: 12rpx;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.holding-row input {
+  flex: 1;
+  background: var(--bg-secondary);
+  border-radius: 8rpx;
+  padding: 12rpx 16rpx;
+  font-size: 26rpx;
+}
+
+.remove-btn {
+  font-size: 26rpx;
+  color: var(--danger-color);
+  padding: 0 8rpx;
+}
+
+.picker {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  padding: 12rpx 0;
+}
+
+.form-item {
+  margin-bottom: 20rpx;
+}
+
+.form-item .label {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 26rpx;
+  margin-bottom: 8rpx;
+}

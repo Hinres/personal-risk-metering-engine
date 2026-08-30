@@ -19,4 +19,4 @@ export function scheduleRiskMonitoring(): ReturnType<typeof cron.schedule> {
       logger.error('Risk monitoring failed', { error: error.message });
     }
   });
-};
+}

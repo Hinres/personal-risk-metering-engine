@@ -67,6 +67,10 @@ Page({
     wx.navigateTo({ url: `/pages/holding/add/add?portfolioId=${this.data.portfolioId}` });
   },
 
+  goToImport() {
+    wx.navigateTo({ url: `/pages/holding/import/import?portfolioId=${this.data.portfolioId}` });
+  },
+
   goToEditHolding(e) {
     const id = e.currentTarget.dataset.id;
     wx.navigateTo({ url: `/pages/holding/edit/edit?id=${id}&portfolioId=${this.data.portfolioId}` });
@@ -129,5 +133,21 @@ Page({
 
   goToMonitors() {
     wx.navigateTo({ url: `/pages/monitor/rules/rules?portfolioId=${this.data.portfolioId}` });
+  },
+
+  goToStructure() {
+    wx.navigateTo({ url: `/pages/portfolio/structure/structure?id=${this.data.portfolioId}` });
+  },
+
+  goToAttribution() {
+    wx.navigateTo({ url: `/pages/portfolio/attribution/attribution?id=${this.data.portfolioId}` });
+  },
+
+  goToHistory() {
+    wx.navigateTo({ url: `/pages/portfolio/history/history?id=${this.data.portfolioId}` });
+  },
+
+  goToOptimize() {
+    wx.navigateTo({ url: `/pages/portfolio/optimize/optimize?id=${this.data.portfolioId}` });
   }
 });

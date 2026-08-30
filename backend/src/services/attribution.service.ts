@@ -7,11 +7,14 @@
 import { AppDataSource } from '../config/database';
 import { Portfolio } from '../models/Portfolio';
 import { Holding } from '../models/Holding';
+import { AttributionResult } from '../models/AttributionResult';
+import { MarketDataService } from './marketData.service';
 import Decimal from 'decimal.js';
 import logger from '../utils/logger';
 
 const portfolioRepo = () => AppDataSource.getRepository(Portfolio);
 const holdingRepo = () => AppDataSource.getRepository(Holding);
+const attributionRepo = () => AppDataSource.getRepository(AttributionResult);
 
 export interface BrinsonBenchmark {
   sectors: { [sector: string]: number }; // 基准权重
@@ -208,5 +211,65 @@ export class AttributionService {
     }
 
     return { sectors: weights, returns };
+  }
+
+  /**
+   * 执行归因并保存结果
+   */
+  static async calculateAndSave(
+    portfolioId: string,
+    userId: string,
+    benchmarkType: string,
+    benchmarkConfig: BrinsonBenchmark | null
+  ): Promise<BrinsonAttributionResult & { attribution_id: string }> {
+    const result = await this.performBrinsonAttribution(portfolioId, userId, benchmarkConfig || undefined);
+
+    const entity = attributionRepo().create({
+      portfolio_id: portfolioId,
+      user_id: userId,
+      benchmark_type: benchmarkType,
+      benchmark_config: benchmarkConfig ? JSON.stringify(benchmarkConfig) : null,
+      portfolio_return: result.portfolio_return,
+      benchmark_return: result.benchmark_return,
+      excess_return: result.excess_return,
+      allocation_effect: result.allocation_effect,
+      selection_effect: result.selection_effect,
+      interaction_effect: result.interaction_effect,
+      sector_details: JSON.stringify(result.sector_details),
+      disclaimer: '本归因结果仅供参考，不构成投资建议。',
+    });
+    await attributionRepo().save(entity);
+
+    return { ...result, attribution_id: entity.attribution_id };
+  }
+
+  /**
+   * 获取归因历史
+   */
+  static async getHistory(portfolioId: string, userId: string, page = 1, pageSize = 20) {
+    const [list, total] = await attributionRepo().findAndCount({
+      where: { portfolio_id: portfolioId, user_id: userId },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      order: { created_at: 'DESC' },
+    });
+
+    return {
+      total,
+      page,
+      pageSize,
+      list: list.map(item => ({
+        attribution_id: item.attribution_id,
+        portfolio_return: Number(item.portfolio_return),
+        benchmark_return: Number(item.benchmark_return),
+        excess_return: Number(item.excess_return),
+        allocation_effect: Number(item.allocation_effect),
+        selection_effect: Number(item.selection_effect),
+        interaction_effect: Number(item.interaction_effect),
+        sector_details: JSON.parse(item.sector_details || '[]'),
+        disclaimer: item.disclaimer,
+        created_at: item.created_at,
+      })),
+    };
   }
 }

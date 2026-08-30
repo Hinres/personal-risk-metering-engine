@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="header">
+    <text class="title">风险事件</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading && !events.length}}">加载中...</view>
+
+  <scroll-view class="list" scroll-y>
+    <block wx:if="{{!events.length && !loading}}">
+      <view class="empty">暂无风险事件</view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{events}}" wx:key="event_id" class="event-card">
+        <view class="event-header">
+          <text class="title">{{item.title}}</text>
+          <text class="level {{item.level}}">{{item.level}}</text>
+        </view>
+        <view class="event-meta">
+          <text class="source">来源: {{item.source_type}}</text>
+          <text class="time">{{item.occurred_at}}</text>
+        </view>
+        <view class="impact" wx:if="{{item.affected_holdings && item.affected_holdings.length}}">
+          <view wx:for="{{item.affected_holdings}}" wx:key="symbol" class="impact-item">
+            <text>{{item.symbol}}</text>
+            <text wx:if="{{item.portfolio_weight}}">权重 {{(item.portfolio_weight*100).toFixed(2)}}%</text>
+          </view>
+          <view class="summary">{{item.affected_holdings[0].impact_summary}}</view>
+        </view>
+        <view class="event-footer" wx:if="{{!item.is_read}}">
+          <button size="mini" bindtap="acknowledge" data-id="{{item.event_id}}">标记已读</button>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

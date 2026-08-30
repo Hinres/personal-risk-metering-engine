@@ -9,11 +9,16 @@ import {
   getPortfolios, getPortfolio, createPortfolio, updatePortfolio, deletePortfolio,
   getPortfolioStructure, getPortfolioAnalysis, getPortfolioRisk, getPortfolioSuggestions,
   getHoldingLimits, createHoldingLimit, updateHoldingLimit, deleteHoldingLimit, checkHoldingLimits,
-  getPortfolioAttribution, getCorrelationMatrix, getPortfolioHistory,
 } from '../controllers/portfolio.controller';
+import { runAttribution, getAttributionHistory } from '../controllers/attribution.controller';
+import { getHistoricalComparison } from '../controllers/portfolioSnapshot.controller';
+import { createStopLossSuggestions, getStopLossSuggestions } from '../controllers/stopLoss.controller';
+import { importHoldings } from '../controllers/holdingImport.controller';
+import { createPortfolioFromTemplate } from '../controllers/portfolioTemplate.controller';
+import { getPortfolioOptimization } from '../controllers/portfolioOptimization.controller';
 import { getHoldings, addHolding, updateHolding, deleteHolding } from '../controllers/holding.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
-import { riskAcknowledgmentMiddleware } from '../middleware/riskAcknowledgment.middleware';
+import { riskAcknowledgmentMiddleware, optimizationConsentMiddleware } from '../middleware/riskAcknowledgment.middleware';
 
 const router = Router();
 
@@ -45,14 +50,34 @@ router.put('/:id/limits/:limitId', authMiddleware, riskAcknowledgmentMiddleware,
 router.delete('/:id/limits/:limitId', authMiddleware, riskAcknowledgmentMiddleware, deleteHoldingLimit);
 router.get('/:id/limits/check', authMiddleware, riskAcknowledgmentMiddleware, checkHoldingLimits);
 
-// Brinson 归因分析
-router.get('/:id/attribution', authMiddleware, riskAcknowledgmentMiddleware, getPortfolioAttribution);
+// Brinson 归因分析 (v1.3)
+router.post('/:id/attribution', authMiddleware, riskAcknowledgmentMiddleware, runAttribution);
+router.get('/:id/attribution/history', authMiddleware, riskAcknowledgmentMiddleware, getAttributionHistory);
 
-// @deprecated 兼容路由：独立相关性矩阵接口，计划 v1.4 移除
-router.get('/:id/correlation', authMiddleware, riskAcknowledgmentMiddleware, getCorrelationMatrix);
+// 止损建议
+router.post('/:portfolio_id/stop-loss-suggestions', authMiddleware, riskAcknowledgmentMiddleware, createStopLossSuggestions);
+router.get('/:portfolio_id/stop-loss-suggestions', authMiddleware, riskAcknowledgmentMiddleware, getStopLossSuggestions);
+
+// 历史对比 (v1.3)
+router.get('/:id/historical-comparison', authMiddleware, riskAcknowledgmentMiddleware, getHistoricalComparison);
+
+// 优化建议 (v1.3)
+router.get('/:id/optimize', authMiddleware, riskAcknowledgmentMiddleware, optimizationConsentMiddleware, getPortfolioOptimization);
+
+// 持仓批量导入
+router.post('/:portfolio_id/holdings/import', authMiddleware, riskAcknowledgmentMiddleware, importHoldings);
+
+// 模板化投资组合
+router.post('/from-template', authMiddleware, riskAcknowledgmentMiddleware, createPortfolioFromTemplate);
 
 // @deprecated 兼容路由：历史对比接口，计划 v1.4 移除
-router.get('/:id/history', authMiddleware, riskAcknowledgmentMiddleware, getPortfolioHistory);
+router.get('/:id/history', authMiddleware, riskAcknowledgmentMiddleware, getHistoricalComparison);
+
+// @deprecated 兼容路由：独立相关性矩阵接口，计划 v1.4 移除
+router.get('/:id/correlation', authMiddleware, riskAcknowledgmentMiddleware, getPortfolioStructure);
+
+// @deprecated 兼容路由：文档路径 /portfolios/{id}/attribution（GET），计划 v1.4 移除
+router.get('/:id/attribution', authMiddleware, riskAcknowledgmentMiddleware, runAttribution);
 
 // @deprecated 兼容路由：文档路径 /portfolios/{id}/holdings，计划 v1.4 移除，请使用 /holdings/portfolio/{id}
 router.get('/:portfolioId/holdings', authMiddleware, riskAcknowledgmentMiddleware, getHoldings);

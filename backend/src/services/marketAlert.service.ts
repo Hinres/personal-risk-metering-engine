@@ -61,7 +61,7 @@ export class MarketAlertService {
 
     // 2. 获取该用户已确认的 alert_id 集合
     const alertIds = alerts.map(a => a.alert_id);
-    let ackMap = new Map<string, Date>();
+    const ackMap = new Map<string, Date>();
     if (alertIds.length > 0) {
       const acks = await ackRepo().createQueryBuilder('ack')
         .where('ack.user_id = :userId', { userId })

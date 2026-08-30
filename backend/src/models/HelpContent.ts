@@ -40,6 +40,15 @@ export class HelpContent {
   @Column({ type: 'varchar', length: 500, nullable: true })
   video_url!: string | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  video_id!: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  thumbnail_url!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  duration!: number | null;
+
   @JsonColumn({ nullable: true })
   images!: any[] | null;
 

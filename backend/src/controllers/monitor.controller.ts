@@ -146,7 +146,7 @@ export const getMonitorById = async (req: any, res: Response) => {
       monitor_id: monitor.config_id,
       threshold_value: monitor.threshold,
       comparison: monitor.operator,
-      severity: monitor.rules?.severity ?? monitor.metrics?.severity ?? 'medium',
+      severity: monitor.rules?.severity ?? 'medium',
       notification_methods: Array.isArray(notification.channels) ? notification.channels : [],
     };
 

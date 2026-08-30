@@ -37,7 +37,7 @@ export function setDbType(type: DbType): void {
  * - SQLite → simple-json（TEXT 存储，自动序列化）
  */
 export function JsonColumn(options?: Omit<ColumnOptions, 'type'>): PropertyDecorator {
-  return function (target: Object, propertyKey: string | symbol) {
+  return function (target: object, propertyKey: string | symbol) {
     const type = getDbType() === 'postgres' ? 'jsonb' : 'simple-json';
     Column({ ...options, type })(target, propertyKey);
   };
@@ -49,7 +49,7 @@ export function JsonColumn(options?: Omit<ColumnOptions, 'type'>): PropertyDecor
  * - SQLite → datetime
  */
 export function DateTimeColumn(options?: Omit<ColumnOptions, 'type'>): PropertyDecorator {
-  return function (target: Object, propertyKey: string | symbol) {
+  return function (target: object, propertyKey: string | symbol) {
     const type = getDbType() === 'postgres' ? 'timestamp' : 'datetime';
     Column({ ...options, type })(target, propertyKey);
   };

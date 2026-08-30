@@ -16,29 +16,101 @@ const holdingRepo = () => AppDataSource.getRepository(Holding);
 const TUSHARE_API_URL = 'http://api.tushare.pro';
 const getTushareToken = () => process.env.TUSHARE_TOKEN || '';
 
+// 非生产环境下，未配置 Tushare 或数据库无数据时，使用确定性 mock 数据（ISS-001）
+const isMockEnabled = () => {
+  if (process.env.MARKET_DATA_MOCK === 'false') return false;
+  if (process.env.MARKET_DATA_MOCK === 'true') return true;
+  return process.env.NODE_ENV !== 'production' && !getTushareToken();
+};
+
+/**
+ * 生成确定性 mock 历史价格序列
+ * 基于 symbol 派生随机种子，保证同一 symbol 每次生成相同序列
+ */
+const generateMockPrices = (symbol: string, days: number): { trade_date: string; close_price: number }[] => {
+  // 用 symbol 派生基础价格，避免所有 symbol 价格相同
+  let seed = 0;
+  for (let i = 0; i < symbol.length; i++) {
+    seed = (seed * 31 + symbol.charCodeAt(i)) % 100000;
+  }
+  const basePrice = 10 + (seed % 90); // 10 ~ 100
+  const volatility = 0.02 + (seed % 10) / 1000; // 2% ~ 3% 日波动
+
+  const prices: { trade_date: string; close_price: number }[] = [];
+  const today = new Date();
+  let price = basePrice;
+
+  for (let i = days; i >= 0; i--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - i);
+    // 跳过周末
+    if (date.getDay() === 0 || date.getDay() === 6) continue;
+
+    // 简单的伪随机游走
+    const rand = Math.sin(seed + i) * 2; // -2 ~ 2
+    const change = rand * volatility;
+    price = Math.max(1, price * (1 + change));
+
+    prices.push({
+      trade_date: date.toISOString().slice(0, 10),
+      close_price: parseFloat(price.toFixed(4)),
+    });
+  }
+
+  return prices;
+};
+
 export class MarketDataService {
   static async getLatestPrice(symbol: string) {
     const latest = await marketRepo().findOne({
       where: { symbol },
       order: { trade_date: 'DESC' },
     });
-    return latest?.close_price || null;
+    if (latest?.close_price !== null && latest?.close_price !== undefined) {
+      return latest.close_price;
+    }
+
+    if (isMockEnabled()) {
+      logger.warn('Using mock latest price for symbol', { symbol });
+      const mockPrices = generateMockPrices(symbol, 30);
+      return mockPrices[mockPrices.length - 1]?.close_price ?? null;
+    }
+
+    return null;
   }
 
   static async getHistory(symbol: string, days = 30) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    return marketRepo().createQueryBuilder()
+    const records = await marketRepo().createQueryBuilder()
       .where('symbol = :symbol', { symbol })
       .andWhere('trade_date >= :cutoff', { cutoff })
       .orderBy('trade_date', 'DESC')
       .take(days)
       .getMany();
+
+    if (records.length >= 2) {
+      return records;
+    }
+
+    if (isMockEnabled()) {
+      logger.warn('Using mock historical prices for symbol', { symbol, days });
+      const mockPrices = generateMockPrices(symbol, days);
+      return mockPrices.map(p => marketRepo().create({
+        symbol,
+        trade_date: p.trade_date,
+        close_price: p.close_price,
+        security_type: 'stock',
+        exchange: 'MOCK',
+      }));
+    }
+
+    return records;
   }
 
   static async getReturnsMatrix(symbols: string[], days = 252) {
     const priceData: Record<string, number[]> = {};
-    
+
     for (const symbol of symbols) {
       const history = await this.getHistory(symbol, days + 1);
       const prices = history.map(h => parseFloat(h.close_price?.toString() || '0')).reverse();
@@ -51,7 +123,7 @@ export class MarketDataService {
       }
       priceData[symbol] = returns;
     }
-    
+
     const minLength = Math.min(...Object.values(priceData).map(r => r.length));
     const matrix: number[][] = [];
     for (let i = 0; i < minLength; i++) {
@@ -61,7 +133,7 @@ export class MarketDataService {
       }
       matrix.push(row);
     }
-    
+
     return matrix;
   }
 

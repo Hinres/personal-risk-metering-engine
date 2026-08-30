@@ -57,5 +57,9 @@ Page({
 
   goToNotifications() {
     wx.navigateTo({ url: '/pages/notifications/notifications' });
+  },
+
+  goToMarketVolatility() {
+    wx.navigateTo({ url: '/pages/market/volatility/volatility' });
   }
 });

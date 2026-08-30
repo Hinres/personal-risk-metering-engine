@@ -12,10 +12,13 @@ import Decimal from 'decimal.js';
 import logger from '../utils/logger';
 import { MarketDataService } from './marketData.service';
 import { correlationMatrix } from '../calculation/utils';
+import { calculateRiskMetrics, calculateBeta, calculateTreynorRatio } from '../calculation/risk';
+import { PortfolioAnalytics } from '../models/PortfolioAnalytics';
 
 const portfolioRepo = () => AppDataSource.getRepository(Portfolio);
 const holdingRepo = () => AppDataSource.getRepository(Holding);
 const holdingLimitRepo = () => AppDataSource.getRepository(HoldingLimit);
+const analyticsRepo = () => AppDataSource.getRepository(PortfolioAnalytics);
 
 export interface ProjectedHolding {
   symbol: string;
@@ -329,18 +332,81 @@ export class PortfolioService {
       };
     }).sort((a, b) => b.return_pct - a.return_pct);
 
+    // 计算更丰富的风险指标
+    const riskMetrics = await this.calculatePortfolioRiskMetrics(holdings, weights, totalValue, totalCost);
+
     return {
       portfolio_id: id,
       total_value: parseFloat(totalValue.toFixed(2)),
       total_cost: parseFloat(totalCost.toFixed(2)),
       total_return: parseFloat(totalReturn.toFixed(4)),
       annual_return: parseFloat(annualReturn.toFixed(4)),
-      volatility: parseFloat(volatility.toFixed(4)),
-      sharpe_ratio: sharpeRatio,
-      max_drawdown: maxDrawdown,
+      volatility: parseFloat(riskMetrics.volatility.toFixed(4)),
+      sharpe_ratio: parseFloat(riskMetrics.sharpe_ratio.toFixed(4)),
+      sortino_ratio: parseFloat(riskMetrics.sortino_ratio.toFixed(4)),
+      max_drawdown: parseFloat(riskMetrics.max_drawdown.toFixed(4)),
+      calmar_ratio: parseFloat(riskMetrics.calmar_ratio.toFixed(4)),
+      beta: parseFloat(riskMetrics.beta.toFixed(4)),
+      treynor_ratio: parseFloat(riskMetrics.treynor_ratio.toFixed(4)),
       risk_free_rate: riskFreeRate,
       holding_returns: holdingReturns,
       analysis_date: new Date().toISOString(),
+    };
+  }
+
+  private static async calculatePortfolioRiskMetrics(holdings: Holding[], weights: number[], totalValue: number, totalCost: number) {
+    // 构建基于持仓市值的简化日收益序列
+    const returns: number[] = holdings.map((h) => {
+      const cost = parseFloat(h.cost_price?.toString() || '0');
+      const current = parseFloat(h.current_price?.toString() || '0') || cost;
+      if (cost > 0) return (current - cost) / cost;
+      return 0;
+    });
+
+    const weightedReturns = returns.map((r, i) => r * weights[i]);
+    const riskMetrics = calculateRiskMetrics(weightedReturns);
+
+    let volatility = riskMetrics.volatility;
+    if (volatility === 0) {
+      // fallback：使用原来的加权波动率计算
+      volatility = this.calculatePortfolioVolatility(holdings, weights);
+    }
+
+    let maxDrawdown = riskMetrics.max_drawdown;
+    if (maxDrawdown === 0 && totalCost > 0 && totalValue < totalCost) {
+      maxDrawdown = Number(((totalCost - totalValue) / totalCost).toFixed(4));
+    }
+
+    // 获取市场收益（沪深300）计算 beta/treynor
+    let beta = 1.0;
+    let treynor = riskMetrics.sharpe_ratio;
+    try {
+      const marketHistory = await MarketDataService.getHistory('000300.SH', 252);
+      const marketPrices = marketHistory.map(h => parseFloat(h.close_price?.toString() || '0')).reverse();
+      if (marketPrices.length >= 2) {
+        const marketReturns: number[] = [];
+        for (let i = 1; i < marketPrices.length; i++) {
+          marketReturns.push((marketPrices[i] - marketPrices[i - 1]) / marketPrices[i - 1]);
+        }
+        // 截取与组合收益相同长度
+        const alignedMarketReturns = marketReturns.slice(0, weightedReturns.length);
+        if (alignedMarketReturns.length > 0) {
+          beta = calculateBeta(weightedReturns, alignedMarketReturns);
+          treynor = calculateTreynorRatio(weightedReturns, alignedMarketReturns, 0.025);
+        }
+      }
+    } catch (e: any) {
+      logger.warn('Beta/Treynor calc fallback', { error: e.message });
+    }
+
+    return {
+      volatility,
+      sharpe_ratio: riskMetrics.sharpe_ratio,
+      sortino_ratio: riskMetrics.sortino_ratio,
+      max_drawdown: maxDrawdown,
+      calmar_ratio: riskMetrics.calmar_ratio,
+      beta,
+      treynor_ratio: treynor,
     };
   }
 

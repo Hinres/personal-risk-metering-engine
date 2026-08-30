@@ -80,6 +80,9 @@ export class Holding {
   @JsonColumn({ nullable: true })
   metadata!: Record<string, any> | null;
 
+  @Column({ type: 'uuid', nullable: true })
+  import_row_id!: string | null;
+
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 

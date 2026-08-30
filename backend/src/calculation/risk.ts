@@ -90,6 +90,36 @@ export function calculateCalmarRatio(returns: number[]): number {
 }
 
 /**
+ * 计算Beta
+ */
+export function calculateBeta(portfolioReturns: number[], marketReturns: number[]): number {
+  if (portfolioReturns.length !== marketReturns.length || portfolioReturns.length === 0) return 0;
+  const n = portfolioReturns.length;
+  const meanP = mean(portfolioReturns);
+  const meanM = mean(marketReturns);
+
+  let cov = 0;
+  let varM = 0;
+  for (let i = 0; i < n; i++) {
+    cov += (portfolioReturns[i] - meanP) * (marketReturns[i] - meanM);
+    varM += Math.pow(marketReturns[i] - meanM, 2);
+  }
+  cov /= n;
+  varM /= n;
+
+  return varM !== 0 ? cov / varM : 0;
+}
+
+/**
+ * 计算Treynor比率
+ */
+export function calculateTreynorRatio(portfolioReturns: number[], marketReturns: number[], riskFreeRate: number = 0.025): number {
+  const beta = calculateBeta(portfolioReturns, marketReturns);
+  if (beta === 0) return 0;
+  return (mean(portfolioReturns) * 252 - riskFreeRate) / beta;
+}
+
+/**
  * 计算相关系数矩阵
  */
 export function calculateCorrelationMatrix(

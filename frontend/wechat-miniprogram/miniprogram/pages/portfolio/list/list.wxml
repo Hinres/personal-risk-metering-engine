@@ -1,7 +1,10 @@
 <view class="container">
   <view class="header">
     <text class="title">我的组合</text>
-    <button class="btn-add" bindtap="goToCreate">+ 新建</button>
+    <view class="header-actions">
+      <button class="btn-text" bindtap="goToTemplates">模板</button>
+      <button class="btn-add" bindtap="goToCreate">+ 新建</button>
+    </view>
   </view>
 
   <scroll-view class="list" scroll-y refresher-enabled refresher-triggered="{{refreshing}}" bindrefresherrefresh="onRefresh">

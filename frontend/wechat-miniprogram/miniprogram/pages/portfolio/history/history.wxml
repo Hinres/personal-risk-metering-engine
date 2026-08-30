@@ -1,0 +1,42 @@
+<view class="container">
+  <view class="header">
+    <text class="title">历史对比</text>
+    <picker mode="selector" range="{{PERIOD_OPTIONS}}" range-key="label" value="{{periodIndex}}" bindchange="onPeriodChange">
+      <view class="period-picker">{{PERIOD_OPTIONS[periodIndex].label}}</view>
+    </picker>
+  </view>
+
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="加载中..." />
+  <error-state wx:if="{{error}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry" />
+
+  <block wx:if="{{!loading && !error && current}}">
+    <view class="summary-card">
+      <view class="summary-row">
+        <text class="label">当前总市值</text>
+        <text class="value">{{current.total_value_fmt}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="label">累计收益</text>
+        <text class="value">{{current.total_return_fmt}}</text>
+      </view>
+      <view class="summary-row" wx:if="{{changes}}">
+        <text class="label">区间市值变化</text>
+        <text class="value">{{changes.total_value_change}}</text>
+      </view>
+    </view>
+
+    <view class="section-title">历史快照</view>
+    <view wx:if="{{!history.length}}" class="empty">暂无历史数据</view>
+    <view wx:for="{{history}}" wx:key="snapshot_date" class="snapshot-row">
+      <view class="snapshot-main">
+        <text class="snapshot-date">{{item.snapshot_date_fmt}}</text>
+        <text class="snapshot-value">{{item.total_value_fmt}}</text>
+      </view>
+      <view class="snapshot-meta">
+        <text>收益 {{item.total_return_fmt}}</text>
+        <text>最大回撤 {{item.max_drawdown_fmt}}</text>
+        <text>夏普 {{item.sharpe_ratio_fmt}}</text>
+      </view>
+    </view>
+  </block>
+</view>

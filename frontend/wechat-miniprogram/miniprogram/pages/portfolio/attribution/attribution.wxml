@@ -1,0 +1,48 @@
+<view class="container">
+  <loading-spinner wx:if="{{loading}}" type="fullscreen" text="分析中..." />
+  <error-state wx:if="{{error}}" title="加载失败" desc="{{errorMsg}}" bind:retry="onRetry" />
+
+  <block wx:if="{{!loading && !error && result}}">
+    <view class="header">
+      <text class="title">Brinson 归因</text>
+      <text class="subtitle">组合 vs 基准收益拆解</text>
+    </view>
+
+    <view class="summary-card">
+      <view class="summary-row">
+        <text class="label">组合收益</text>
+        <text class="value">{{result.portfolio_return_fmt}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="label">基准收益</text>
+        <text class="value">{{result.benchmark_return_fmt}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="label">配置效应</text>
+        <text class="value">{{result.allocation_effect_fmt}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="label">选股效应</text>
+        <text class="value">{{result.selection_effect_fmt}}</text>
+      </view>
+      <view class="summary-row">
+        <text class="label">交互效应</text>
+        <text class="value">{{result.interaction_effect_fmt}}</text>
+      </view>
+    </view>
+
+    <view class="section-title">行业贡献</view>
+    <view wx:if="{{!result.sectors.length}}" class="empty">暂无行业数据</view>
+    <view wx:for="{{result.sectors}}" wx:key="sector" class="sector-row">
+      <view class="sector-main">
+        <text class="sector-name">{{item.sector}}</text>
+        <text class="sector-return">{{item.return_fmt}}</text>
+      </view>
+      <view class="sector-meta">
+        <text>组合权重 {{item.portfolio_weight_fmt}}</text>
+        <text>基准权重 {{item.benchmark_weight_fmt}}</text>
+        <text>贡献 {{item.contribution_fmt}}</text>
+      </view>
+    </view>
+  </block>
+</view>

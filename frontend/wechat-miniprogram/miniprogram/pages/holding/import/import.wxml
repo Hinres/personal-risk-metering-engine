@@ -1,0 +1,38 @@
+<view class="container">
+  <view class="header">
+    <text class="title">批量导入持仓</text>
+    <text class="subtitle">支持 .xlsx / .csv，单次最多 100 条</text>
+  </view>
+
+  <view class="upload-card" bindtap="chooseFile" wx:if="{{!result}}">
+    <text class="upload-icon">📁</text>
+    <text class="upload-text">点击选择文件</text>
+    <text class="upload-hint">股票代码、名称、数量、成本价为必填字段</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">上传处理中...</view>
+
+  <block wx:if="{{result}}">
+    <view class="result-card">
+      <view class="result-title">导入结果</view>
+      <view class="result-item">
+        <text>总行数</text>
+        <text>{{result.total_rows}}</text>
+      </view>
+      <view class="result-item">
+        <text>成功行数</text>
+        <text class="success">{{result.imported_count}}</text>
+      </view>
+      <view class="result-item" wx:if="{{result.error_rows > 0}}">
+        <text>失败行数</text>
+        <text class="error">{{result.error_rows}}</text>
+      </view>
+      <view class="error-list" wx:if="{{result.errors && result.errors.length}}">
+        <view wx:for="{{result.errors}}" wx:key="row" class="error-item">
+          第{{item.row}}行 - {{item.field}}: {{item.reason}}
+        </view>
+      </view>
+    </view>
+    <button class="btn-back" bindtap="goBack">返回组合详情</button>
+  </block>
+</view>

@@ -1,0 +1,39 @@
+<view class="container">
+  <view class="header">
+    <text class="title">组合优化建议</text>
+    <text class="subtitle">基于当前持仓与风险目标给出调整方向</text>
+  </view>
+
+  <view class="consent-card">
+    <checkbox-group bindchange="onConsentChange">
+      <label class="consent-label">
+        <checkbox value="1" checked="{{consentChecked}}" />
+        <text>我已阅读并理解优化建议仅供风险提示，不构成投资建议</text>
+      </label>
+    </checkbox-group>
+    <button class="btn-primary" bindtap="loadOptimization" disabled="{{loading}}">
+      {{loading ? '生成中...' : '生成优化建议'}}
+    </button>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">生成中...</view>
+
+  <view class="error" wx:if="{{error}}">
+    <text>{{errorMsg}}</text>
+    <button size="mini" bindtap="onRetry">重试</button>
+  </view>
+
+  <block wx:if="{{optimization}}">
+    <view class="section" wx:if="{{optimization.summary}}">
+      <view class="section-title">优化摘要</view>
+      <text class="summary-text">{{optimization.summary}}</text>
+    </view>
+    <view class="section" wx:if="{{optimization.suggestions && optimization.suggestions.length}}">
+      <view class="section-title">调整建议</view>
+      <view class="suggestion" wx:for="{{optimization.suggestions}}" wx:key="index">
+        <text class="suggestion-title">{{item.title}}</text>
+        <text class="suggestion-desc">{{item.description}}</text>
+      </view>
+    </view>
+  </block>
+</view>

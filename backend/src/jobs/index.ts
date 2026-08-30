@@ -12,8 +12,9 @@ import { scheduleReportGeneration } from './reportGeneration.job';
 import { scheduleMarketFluctuationCheck } from './marketFluctuation.job';
 import { schedulePartitionMaintenance } from './partitionMaintenance.job';
 import { scheduleDatabaseBackup } from './databaseBackup.job';
-
 import { scheduleExportCleanup } from './exportCleanup.job';
+import { scheduleDailyPortfolioSnapshot } from './dailyPortfolioSnapshot.job';
+import { scheduleRiskEventCollection } from './riskEventCollection.job';
 
 let scheduledTasks: ReturnType<typeof cron.schedule>[] = [];
 
@@ -28,6 +29,8 @@ export function initializeJobs(): ReturnType<typeof cron.schedule>[] {
       schedulePartitionMaintenance(),
       scheduleDatabaseBackup(),
       scheduleExportCleanup(),
+      scheduleDailyPortfolioSnapshot(),
+      scheduleRiskEventCollection(),
     ];
     console.log('Cron jobs initialized');
   }

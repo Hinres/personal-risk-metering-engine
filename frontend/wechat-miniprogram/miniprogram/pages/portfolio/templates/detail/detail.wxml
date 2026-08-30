@@ -1,0 +1,21 @@
+<view class="container">
+  <view class="loading" wx:if="{{loading && !template}}">加载中...</view>
+  <view class="error" wx:if="{{error}}">
+    <text>{{errorMsg}}</text>
+    <button size="mini" bindtap="onRetry">重试</button>
+  </view>
+  <block wx:if="{{template}}">
+    <view class="header">
+      <text class="title">{{template.name}}</text>
+      <text class="subtitle">{{template.description}}</text>
+    </view>
+    <view class="section">
+      <view class="section-title">持仓示例</view>
+      <view class="holding" wx:for="{{template.sample_holdings}}" wx:key="index">
+        <text>{{item.symbol}}</text>
+        <text>{{item.weight ? (item.weight * 100).toFixed(0) + '%' : ''}}</text>
+      </view>
+    </view>
+    <button class="btn-primary" bindtap="goToApply">套用到新组合</button>
+  </block>
+</view>

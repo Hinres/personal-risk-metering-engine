@@ -55,10 +55,20 @@ export class Portfolio {
     alert_enabled?: boolean;
     base_currency?: string;
     benchmark?: string;
+    investment_goal?: string;
   };
 
   @JsonColumn({ nullable: true })
   statistics!: Record<string, any> | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  investment_goal!: string | null;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  risk_level!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  template_id!: string | null;
 
   @DeleteDateColumn({ type: 'datetime', nullable: true })
   deleted_at!: Date | null;

@@ -1,0 +1,29 @@
+<view class="container">
+  <view class="header">
+    <text class="title">市场波动率</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading && !summary}}">加载中...</view>
+
+  <block wx:if="{{summary}}">
+    <view class="summary-card">
+      <view class="main-value">{{(summary.composite_volatility_pct).toFixed(2)}}%</view>
+      <view class="main-label">综合年化波动率</view>
+      <view class="percentile">历史分位: {{summary.historical_percentile}}%</view>
+      <view class="status {{summary.status}}">{{summary.status_text}}</view>
+    </view>
+
+    <view class="component-card">
+      <view class="section-title">成分指数</view>
+      <view class="component-item" wx:for="{{summary.components}}" wx:key="index_symbol">
+        <text class="name">{{item.index_name}}</text>
+        <text class="weight">权重 {{(item.weight*100).toFixed(0)}}%</text>
+        <text class="volatility">{{(item.volatility*100).toFixed(2)}}%</text>
+      </view>
+    </view>
+
+    <view class="disclaimer" wx:if="{{summary.disclaimer}}">
+      {{summary.disclaimer}}
+    </view>
+  </block>
+</view>

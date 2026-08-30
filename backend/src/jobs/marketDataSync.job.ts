@@ -24,4 +24,4 @@ export function scheduleMarketDataSync(): ReturnType<typeof cron.schedule> {
       logger.error('Market data sync failed', { error: error.message });
     }
   });
-};
+}

@@ -16,9 +16,11 @@ import { NamingAlignmentMigration1718000000002 } from '../database/migrations/00
 import { PostgresqlFeatures1718000000003 } from '../database/migrations/003-postgresql-features';
 import { ComplianceEvtMigration1718000000004 } from '../database/migrations/004-compliance-evt-migration';
 import { AlertHistoryMonitorFkMigration1718000000005 } from '../database/migrations/005-alert-history-monitor-fk-migration';
+import { V13FeatureModelsMigration1718000000006 } from '../database/migrations/006-v1.3-feature-models';
 
 // ── 所有实体导入 ──
 import { OptimizationResult } from '../models/OptimizationResult';
+import { OptimizationScenario } from '../models/OptimizationScenario';
 import { VaRComponent } from '../models/VaRComponent';
 import { UserConsent } from '../models/UserConsent';
 import { AdminApprovalRequest } from '../models/AdminApprovalRequest';
@@ -59,6 +61,18 @@ import { MarketSnapshotCache } from '../models/MarketSnapshotCache';
 import { PortfolioSummaryCache } from '../models/PortfolioSummaryCache';
 import { MessageQueue } from '../models/MessageQueue';
 import { RefreshTokenBlacklist } from '../models/RefreshTokenBlacklist';
+import { StopLossSuggestion } from '../models/StopLossSuggestion';
+import { RiskEventSource } from '../models/RiskEventSource';
+import { RiskEvent } from '../models/RiskEvent';
+import { RiskEventImpact } from '../models/RiskEventImpact';
+import { MarketVolatilityIndex } from '../models/MarketVolatilityIndex';
+import { MarketVolatilityHistory } from '../models/MarketVolatilityHistory';
+import { HoldingImportTask } from '../models/HoldingImportTask';
+import { HoldingImportRow } from '../models/HoldingImportRow';
+import { PortfolioTemplate } from '../models/PortfolioTemplate';
+import { AttributionResult } from '../models/AttributionResult';
+import { PortfolioAnalytics } from '../models/PortfolioAnalytics';
+import { VideoTutorial } from '../models/VideoTutorial';
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isProduction = process.env.NODE_ENV === 'production';
@@ -84,6 +98,10 @@ const entities = [
   MonitorSnapshot, PartitionMetadata,
   ComputationCache, MarketSnapshotCache, PortfolioSummaryCache,
   MessageQueue, RefreshTokenBlacklist,
+  StopLossSuggestion, RiskEventSource, RiskEvent, RiskEventImpact,
+  MarketVolatilityIndex, MarketVolatilityHistory,
+  HoldingImportTask, HoldingImportRow, PortfolioTemplate,
+  AttributionResult, OptimizationScenario, PortfolioAnalytics, VideoTutorial,
 ];
 
 // ── SQLite 配置 ──
@@ -93,7 +111,7 @@ const sqliteConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005],
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006],
   extra: {
     pragmas: [
       'PRAGMA journal_mode = WAL',
@@ -114,7 +132,7 @@ const postgresConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005], // 生产环境建议手动运行：npx typeorm migration:run
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006], // 生产环境建议手动运行：npx typeorm migration:run
   extra: {
     // 连接池配置
     max: parseInt(process.env.DB_POOL_MAX || '20', 10),

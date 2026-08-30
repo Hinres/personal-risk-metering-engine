@@ -74,4 +74,4 @@ export function scheduleVaRCalculation(): ReturnType<typeof cron.schedule> {
       await releaseLock();
     }
   });
-};
+}

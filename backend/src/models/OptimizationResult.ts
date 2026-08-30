@@ -26,6 +26,21 @@ export class OptimizationResult {
   @Column({ type: 'varchar', length: 50 })
   method!: string; // 'mean_variance', 'risk_parity', 'min_variance', 'max_sharpe', 'max_sortino'
 
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  objective_detail!: string | null;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  scoring_model!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  filter_rules!: string | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  backtest_scenario_id!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  backtest_metrics!: string | null;
+
   @JsonColumn({ nullable: true })
   current_portfolio!: Record<string, any> | null;
 

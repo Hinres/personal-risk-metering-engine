@@ -1,0 +1,58 @@
+module.exports = {
+  root: true,
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaVersion: 2022,
+    sourceType: 'module',
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
+  },
+  plugins: ['@typescript-eslint'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+  ],
+  env: {
+    node: true,
+    jest: true,
+    es2022: true,
+  },
+  rules: {
+    // 代码风格类：不过于严格，避免阻断 SIT
+    '@typescript-eslint/no-explicit-any': 'off',
+    '@typescript-eslint/no-var-requires': 'off',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-non-null-assertion': 'off',
+    '@typescript-eslint/ban-ts-comment': 'off',
+    '@typescript-eslint/no-empty-function': 'off',
+    '@typescript-eslint/no-namespace': 'off',
+    '@typescript-eslint/no-empty-interface': 'off',
+    '@typescript-eslint/triple-slash-reference': 'off',
+    '@typescript-eslint/no-require-imports': 'off',
+    // 潜在问题类
+    'no-console': 'off',
+    'no-debugger': 'warn',
+    'no-constant-condition': 'warn',
+    'no-extra-boolean-cast': 'warn',
+    'no-prototype-builtins': 'warn',
+    'prefer-const': 'warn',
+    'no-var': 'warn',
+    // TypeScript 严格模式关闭，避免 v1.2/v1.3 历史代码大量报错
+    '@typescript-eslint/no-floating-promises': 'off',
+    '@typescript-eslint/no-misused-promises': 'off',
+    '@typescript-eslint/require-await': 'off',
+  },
+  ignorePatterns: [
+    'dist/',
+    'node_modules/',
+    'coverage/',
+    'data/',
+    'logs/',
+    'uploads/',
+    'scripts/',
+    'tests/',
+    'src/database/seeds/',
+    '*.js',
+    '*.d.ts',
+  ],
+};

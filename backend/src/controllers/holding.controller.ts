@@ -49,18 +49,26 @@ export const getHoldingById = async (req: any, res: Response) => {
       return errorResponse(res, 'Holding not found', 404);
     }
 
-    // 组装小程序编辑页期望的字段，同时保留原始字段
-    // 关键：metadata.market 字段存在（即使为 ''/null）也要尊重用户主动清空语义，而不是回退到 exchange
+    // 关键：metadata 字段存在（即使为 ''/null）也要尊重用户主动清空语义，而不是回退
     const metadata = holding.metadata || {};
-    const market = Object.prototype.hasOwnProperty.call(metadata, 'market')
+    const hasMarket = Object.prototype.hasOwnProperty.call(metadata, 'market');
+    const market = hasMarket
       ? (metadata.market === null || metadata.market === undefined ? '' : metadata.market)
       : (holding.exchange || '');
+    const hasPurchaseDate = Object.prototype.hasOwnProperty.call(metadata, 'purchase_date');
+    const purchase_date = hasPurchaseDate
+      ? (metadata.purchase_date === null || metadata.purchase_date === undefined ? '' : metadata.purchase_date)
+      : null;
+    const hasRemark = Object.prototype.hasOwnProperty.call(metadata, 'remark');
+    const remark = hasRemark
+      ? (metadata.remark === null || metadata.remark === undefined ? '' : metadata.remark)
+      : '';
     const response = {
       ...holding,
       portfolio_id: holding.portfolio_id,
       market,
-      purchase_date: metadata.purchase_date || null,
-      remark: metadata.remark || '',
+      purchase_date,
+      remark,
     };
 
     return successResponse(res, response);

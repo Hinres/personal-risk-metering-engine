@@ -9,8 +9,14 @@ import { MonitorConfig } from '../models/MonitorConfig';
 import { AlertHistory } from '../models/AlertHistory';
 import { VaRCalculation } from '../models/VaRCalculation';
 import { PortfolioSummaryCache } from '../models/PortfolioSummaryCache';
+import { StopLossSuggestion } from '../models/StopLossSuggestion';
+import { RiskEventImpact } from '../models/RiskEventImpact';
 import { VaRService } from './var.service';
 import { NotificationService } from './notification.service';
+import { StopLossService } from './stopLoss.service';
+import { RiskEventService } from './riskEvent.service';
+import { MarketVolatilityService } from './marketVolatility.service';
+import { MarketDataService } from './marketData.service';
 import WebSocketService from './websocket.service';
 import logger from '../utils/logger';
 
@@ -18,6 +24,8 @@ const monitorRepo = () => AppDataSource.getRepository(MonitorConfig);
 const alertRepo = () => AppDataSource.getRepository(AlertHistory);
 const varRepo = () => AppDataSource.getRepository(VaRCalculation);
 const cacheRepo = () => AppDataSource.getRepository(PortfolioSummaryCache);
+const stopLossRepo = () => AppDataSource.getRepository(StopLossSuggestion);
+const impactRepo = () => AppDataSource.getRepository(RiskEventImpact);
 
 export class MonitorService {
   static async getMonitors(userId: string, portfolioId?: string) {
@@ -65,7 +73,11 @@ export class MonitorService {
     // ✅ 支持 config_name（PRD 命名）和 monitor_name（兼容旧调用）
     const name = data.config_name || data.monitor_name;
 
-    // 处理前端 severity 字段映射：权威来源为 rules.severity（REQ-DEC-20260807-001）
+    // 归一化 PRD 字段名 threshold_value/comparison 到后端字段名 threshold/operator（DEF-001）
+    const threshold = data.threshold_value !== undefined ? data.threshold_value : data.threshold;
+    const operator = data.comparison !== undefined ? data.comparison : data.operator;
+
+    // 处理前端 severity 字段映射：权威来源为 rules.severity（ARC-DESIGN-20260823-001）
     let rules = data.rules || {};
     if (data.severity !== undefined) {
       rules = { ...rules, severity: data.severity };
@@ -76,11 +88,12 @@ export class MonitorService {
       portfolio_id: data.portfolio_id,
       config_name: name,
       monitor_type: data.monitor_type,
-      threshold: data.threshold,
-      operator: data.operator || '>',
+      threshold,
+      operator: operator || '>',
       notification: notification,
       rules,
       // M-08: 支持多指标配置和自定义检查频率
+      // v1.3 设计约束：severity 仅由 rules.severity 提供，不再保留 metrics.severity
       metrics: data.metrics || {},
       check_interval_seconds: data.check_interval_seconds || 30,
     });
@@ -110,7 +123,8 @@ export class MonitorService {
       data.operator = data.comparison;
     }
     if (data.severity !== undefined) {
-      data.rules = { ...monitor.rules, severity: data.severity };
+      data.rules = { ...(monitor.rules || {}), severity: data.severity };
+      // v1.3: severity 单一权威来源为 rules.severity，不再同步写入 metrics
     }
     if (data.notification_methods !== undefined) {
       data.notification = {
@@ -174,6 +188,13 @@ export class MonitorService {
 
   private static async checkMonitor(monitor: MonitorConfig) {
     try {
+      // v1.3: 止损/风险事件/波动率异常作为特殊监控类型，走专用检查分支
+      const specializedType = (monitor.monitor_type || '').toLowerCase().trim();
+      if (specializedType === 'stop_loss' || specializedType === 'risk_event' || specializedType === 'volatility_spike') {
+        await this.checkSpecializedMonitor(monitor, specializedType);
+        return;
+      }
+
       // M-08: 优先检查 metrics 多指标配置，兼容单指标模式
       const metricsToCheck = this.resolveMetricsToCheck(monitor);
       if (metricsToCheck.length === 0) return;
@@ -217,6 +238,126 @@ export class MonitorService {
       }
     } catch (e: any) {
       logger.error(`Monitor check failed for ${monitor.config_id}: ${e.message}`);
+    }
+  }
+
+  /**
+   * v1.3: 专用检查分支，处理止损/风险事件/波动率异常等监控类型
+   */
+  private static async checkSpecializedMonitor(monitor: MonitorConfig, monitorType: string) {
+    let result: { triggered: boolean; value: number; threshold: number; metricType: string; details?: any } | null = null;
+
+    switch (monitorType) {
+      case 'stop_loss':
+        result = await this.checkStopLoss(monitor);
+        break;
+      case 'risk_event':
+        result = await this.checkRiskEvent(monitor);
+        break;
+      case 'volatility_spike':
+        result = await this.checkVolatilitySpike(monitor);
+        break;
+    }
+
+    if (!result || !result.triggered) return;
+
+    const isCooling = await this.isInCoolingPeriod(monitor, result.metricType);
+    if (isCooling) {
+      logger.debug(`Monitor ${monitor.config_id} ${result.metricType} in cooling period, skipping`);
+      return;
+    }
+
+    const metric = { type: result.metricType, threshold: result.threshold, operator: '>' };
+    await this.triggerAlert(monitor, metric, result.value, result.threshold);
+
+    monitor.last_triggered = new Date();
+    monitor.trigger_count += 1;
+    await monitorRepo().save(monitor);
+  }
+
+  /**
+   * 检查止损触发：当前价 < 止损参考价
+   */
+  private static async checkStopLoss(monitor: MonitorConfig) {
+    const latest = await stopLossRepo().findOne({
+      where: { portfolio_id: monitor.portfolio_id },
+      order: { created_at: 'DESC' },
+    });
+    if (!latest) return { triggered: false, value: 0, threshold: 0, metricType: 'stop_loss' };
+
+    let suggestions: any[] = [];
+    try {
+      suggestions = JSON.parse(latest.suggestions || '[]');
+    } catch {
+      suggestions = [];
+    }
+
+    let maxBreach = 0;
+    const breached: any[] = [];
+    for (const s of suggestions) {
+      if (!s.symbol || s.symbol === 'portfolio') continue;
+      const currentPrice = await MarketDataService.getLatestPrice(s.symbol);
+      if (!currentPrice || !s.stop_loss_price) continue;
+      const current = Number(currentPrice);
+      const stopLoss = Number(s.stop_loss_price);
+      if (current < stopLoss) {
+        const breach = (stopLoss - current) / stopLoss;
+        if (breach > maxBreach) maxBreach = breach;
+        breached.push({ symbol: s.symbol, name: s.name, current, stop_loss_price: stopLoss, breach });
+      }
+    }
+
+    return {
+      triggered: maxBreach > 0,
+      value: maxBreach,
+      threshold: 0,
+      metricType: 'stop_loss',
+      details: { breached },
+    };
+  }
+
+  /**
+   * 检查风险事件：是否存在未通知的持仓匹配事件
+   */
+  private static async checkRiskEvent(monitor: MonitorConfig) {
+    const where: any = { user_id: monitor.user_id, is_notified: false };
+    if (monitor.portfolio_id) where.portfolio_id = monitor.portfolio_id;
+    const count = await impactRepo().count({ where });
+    return {
+      triggered: count > 0,
+      value: count,
+      threshold: 0,
+      metricType: 'risk_event',
+    };
+  }
+
+  /**
+   * 检查波动率异常：历史分位 > 80 且日环比上涨 > 10%
+   */
+  private static async checkVolatilitySpike(monitor: MonitorConfig) {
+    try {
+      const summary = await MarketVolatilityService.getCurrentVolatility();
+      if (summary.historical_percentile <= 80) {
+        return { triggered: false, value: 0, threshold: 80, metricType: 'volatility_spike' };
+      }
+      const previous = await MarketVolatilityService.getPreviousCompositeVolatility();
+      if (!previous || previous <= 0) {
+        return { triggered: false, value: 0, threshold: 80, metricType: 'volatility_spike' };
+      }
+      const dayChange = (summary.composite_volatility - previous) / previous;
+      if (dayChange <= 0.10) {
+        return { triggered: false, value: 0, threshold: 80, metricType: 'volatility_spike' };
+      }
+      return {
+        triggered: true,
+        value: summary.historical_percentile,
+        threshold: 80,
+        metricType: 'volatility_spike',
+        details: { composite_volatility: summary.composite_volatility, day_change: dayChange },
+      };
+    } catch (e: any) {
+      logger.error(`Volatility spike check failed for monitor ${monitor.config_id}: ${e.message}`);
+      return { triggered: false, value: 0, threshold: 80, metricType: 'volatility_spike' };
     }
   }
 
@@ -348,14 +489,15 @@ export class MonitorService {
     threshold: number
   ) {
     const triggeredAt = new Date();
+    const { title, message } = this.buildAlertTitleAndMessage(monitor, metric, value, threshold);
     const alert = alertRepo().create({
       portfolio_id: monitor.portfolio_id,
       rule_id: monitor.config_id,
       user_id: monitor.user_id,
       alert_type: metric.type,
       severity: this.getSeverity(value, threshold),
-      title: `${monitor.config_name} — ${metric.type} 触发预警`,
-      message: `VaR ${(value * 100).toFixed(2)}% ${metric.operator} 阈值 ${(threshold * 100).toFixed(2)}%`,
+      title,
+      message,
       triggered_at: triggeredAt,
       status: 'active',
       trigger_details: {
@@ -368,6 +510,11 @@ export class MonitorService {
     });
     await alertRepo().save(alert);
     logger.info(`Alert triggered: ${alert.history_id} for monitor ${monitor.config_id} metric ${metric.type}`);
+
+    // 风险事件触发后，将匹配的未通知影响标记为已通知
+    if (metric.type === 'risk_event') {
+      await this.markRiskEventsNotified(monitor);
+    }
 
     // 发送多渠道通知（记录延迟）
     try {
@@ -397,6 +544,56 @@ export class MonitorService {
       });
     } catch (wsErr: any) {
       logger.warn('WebSocket push failed', { alertId: alert.history_id, error: wsErr.message });
+    }
+  }
+
+  /**
+   * 根据监控类型构建告警标题与内容
+   */
+  private static buildAlertTitleAndMessage(
+    monitor: MonitorConfig,
+    metric: { type: string; threshold: number; operator: string },
+    value: number,
+    threshold: number
+  ): { title: string; message: string } {
+    switch (metric.type) {
+      case 'stop_loss': {
+        return {
+          title: `${monitor.config_name} — 止损触发预警`,
+          message: `组合内存在持仓跌破止损参考价，最大偏离 ${(value * 100).toFixed(2)}%`,
+        };
+      }
+      case 'risk_event': {
+        return {
+          title: `${monitor.config_name} — 风险事件提醒`,
+          message: `监测到 ${Math.floor(value)} 条与您持仓相关的未读风险事件，请及时关注`,
+        };
+      }
+      case 'volatility_spike': {
+        return {
+          title: `${monitor.config_name} — 市场波动率异常`,
+          message: `当前市场波动率处于近1年历史 ${(value * 100).toFixed(2)}% 分位，且较前一日上涨超过 10%，请注意持仓风险`,
+        };
+      }
+      default: {
+        return {
+          title: `${monitor.config_name} — ${metric.type} 触发预警`,
+          message: `VaR ${(value * 100).toFixed(2)}% ${metric.operator} 阈值 ${(threshold * 100).toFixed(2)}%`,
+        };
+      }
+    }
+  }
+
+  /**
+   * 将风险事件匹配影响标记为已通知
+   */
+  private static async markRiskEventsNotified(monitor: MonitorConfig) {
+    try {
+      const where: any = { user_id: monitor.user_id, is_notified: false };
+      if (monitor.portfolio_id) where.portfolio_id = monitor.portfolio_id;
+      await impactRepo().update(where, { is_notified: true, notified_at: new Date() });
+    } catch (e: any) {
+      logger.error(`Failed to mark risk events notified for monitor ${monitor.config_id}: ${e.message}`);
     }
   }
 

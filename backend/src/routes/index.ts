@@ -2,7 +2,7 @@
  * [PRME-INFRA-006] 基础设施
  * 文件: index.ts
  * 需求描述: 基础设施功能实现
- * 最后更新: 2026-06-09
+ * 最后更新: 2026-08-20
  */
 import { Router } from 'express';
 import authRoutes from './auth.routes';
@@ -21,6 +21,11 @@ import valuationRoutes from './valuation.routes';
 import optimizationRoutes from './optimization.routes';
 import notificationRoutes from './notification.routes';
 import marketRoutes from './market.routes';
+import marketVolatilityRoutes from './marketVolatility.routes';
+import riskEventRoutes from './riskEvent.routes';
+import portfolioTemplateRoutes from './portfolioTemplate.routes';
+import holdingImportRoutes from './holdingImport.routes';
+import videoTutorialRoutes from './videoTutorial.routes';
 import alertsRoutes from './alerts.routes';
 import adminApprovalRoutes from './adminApproval.routes';
 import anonymizationRoutes from './anonymization.routes';
@@ -43,8 +48,13 @@ router.use('/stress', stressRoutes);
 router.use('/stress-test', stressRoutes); // 别名路由
 router.use('/monitors', monitorRoutes);
 router.use('/market', marketRoutes);
+router.use('/market', marketVolatilityRoutes);
 router.use('/market-alerts', marketAlertRoutes);
 router.use('/alerts', alertsRoutes);
+router.use('/risk-events', riskEventRoutes);
+router.use('/portfolio-templates', portfolioTemplateRoutes);
+router.use('/holding-import-tasks', holdingImportRoutes);
+router.use('/tutorials', videoTutorialRoutes);
 router.use('/tools', toolRoutes);
 router.use('/help', helpRoutes);
 router.use('/reports', reportRoutes);

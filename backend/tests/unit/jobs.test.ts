@@ -77,6 +77,22 @@ jest.mock('../../src/jobs/databaseBackup.job', () => ({
   }),
 }));
 
+jest.mock('../../src/jobs/dailyPortfolioSnapshot.job', () => ({
+  scheduleDailyPortfolioSnapshot: jest.fn().mockReturnValue({
+    stop: jest.fn(),
+    start: jest.fn(),
+    getStatus: jest.fn().mockReturnValue('scheduled'),
+  }),
+}));
+
+jest.mock('../../src/jobs/riskEventCollection.job', () => ({
+  scheduleRiskEventCollection: jest.fn().mockReturnValue({
+    stop: jest.fn(),
+    start: jest.fn(),
+    getStatus: jest.fn().mockReturnValue('scheduled'),
+  }),
+}));
+
 describe('Jobs - Cron Handle Management & Shutdown', () => {
   let mockTask: any;
   let scheduleMarketDataSync: jest.MockedFunction<any>;
@@ -87,6 +103,8 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
   let schedulePartitionMaintenance: jest.MockedFunction<any>;
   let scheduleExportCleanup: jest.MockedFunction<any>;
   let scheduleDatabaseBackup: jest.MockedFunction<any>;
+  let scheduleDailyPortfolioSnapshot: jest.MockedFunction<any>;
+  let scheduleRiskEventCollection: jest.MockedFunction<any>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -105,6 +123,8 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     const partitionMaintenanceModule = require('../../src/jobs/partitionMaintenance.job');
     const exportCleanupModule = require('../../src/jobs/exportCleanup.job');
     const databaseBackupModule = require('../../src/jobs/databaseBackup.job');
+    const dailyPortfolioSnapshotModule = require('../../src/jobs/dailyPortfolioSnapshot.job');
+    const riskEventCollectionModule = require('../../src/jobs/riskEventCollection.job');
 
     scheduleMarketDataSync = marketDataSyncModule.scheduleMarketDataSync;
     scheduleVaRCalculation = varCalcModule.scheduleVaRCalculation;
@@ -114,6 +134,8 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     schedulePartitionMaintenance = partitionMaintenanceModule.schedulePartitionMaintenance;
     scheduleExportCleanup = exportCleanupModule.scheduleExportCleanup;
     scheduleDatabaseBackup = databaseBackupModule.scheduleDatabaseBackup;
+    scheduleDailyPortfolioSnapshot = dailyPortfolioSnapshotModule.scheduleDailyPortfolioSnapshot;
+    scheduleRiskEventCollection = riskEventCollectionModule.scheduleRiskEventCollection;
 
     scheduleMarketDataSync.mockReturnValue(mockTask);
     scheduleVaRCalculation.mockReturnValue(mockTask);
@@ -123,6 +145,8 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     schedulePartitionMaintenance.mockReturnValue(mockTask);
     scheduleExportCleanup.mockReturnValue(mockTask);
     scheduleDatabaseBackup.mockReturnValue(mockTask);
+    scheduleDailyPortfolioSnapshot.mockReturnValue(mockTask);
+    scheduleRiskEventCollection.mockReturnValue(mockTask);
   });
 
   afterEach(() => {
@@ -161,12 +185,12 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       process.env.NODE_ENV = originalEnv;
     });
 
-    it('CRON-002: should return array of 8 task handles in non-test env', () => {
+    it('CRON-002: should return array of 10 task handles in non-test env', () => {
       process.env.NODE_ENV = 'development';
       
       const tasks = initializeJobs();
 
-      expect(tasks).toHaveLength(8);
+      expect(tasks).toHaveLength(10);
       // Verify each task is a valid cron handle with stop method
       tasks.forEach((task: any) => {
         expect(task).toBeDefined();
@@ -200,12 +224,12 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       process.env.NODE_ENV = 'development';
       
       const tasks = initializeJobs();
-      expect(tasks).toHaveLength(8);
+      expect(tasks).toHaveLength(10);
 
       stopJobs();
 
       const stopCallCount = tasks.reduce((sum: number, task: any) => sum + task.stop.mock.calls.length, 0);
-      expect(stopCallCount).toBeGreaterThanOrEqual(8);
+      expect(stopCallCount).toBeGreaterThanOrEqual(10);
     });
 
     it('CRON-006: should handle repeated calls without error', () => {

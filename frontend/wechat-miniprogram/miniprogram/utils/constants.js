@@ -17,11 +17,14 @@ const CONFIDENCE_OPTIONS = [
   { key: 0.999, label: '99.9%' },
 ];
 
-// 时间周期快捷选项
+// 时间周期快捷选项（PRD 2.1.1 支持 1-365 天自定义）
 const HORIZON_OPTIONS = [
   { key: 1, label: '1天' },
   { key: 7, label: '7天' },
   { key: 30, label: '30天' },
+  { key: 90, label: '90天' },
+  { key: 180, label: '180天' },
+  { key: 365, label: '365天' },
 ];
 
 // EVT 估计方法
@@ -30,7 +33,7 @@ const EVT_ESTIMATION_METHODS = [
   { key: 'mle', label: '极大似然估计(MLE)' },
 ];
 
-// 监控类型
+// 监控类型（v1.3 新增止损/风险事件/波动率异常）
 const MONITOR_TYPES = [
   { key: 'var', label: 'VaR 绝对值' },
   { key: 'var_percentage', label: 'VaR 百分比' },
@@ -38,12 +41,18 @@ const MONITOR_TYPES = [
   { key: 'drawdown', label: '最大回撤' },
   { key: 'concentration', label: '集中度' },
   { key: 'liquidity', label: '流动性' },
+  { key: 'stop_loss', label: '止损建议' },
+  { key: 'risk_event', label: '风险事件' },
+  { key: 'volatility_spike', label: '波动率异常' },
 ];
 
-// 比较操作
+// 比较操作（PRD 2.2.2.1 支持 >/ </ >= / <= / =）
 const COMPARISONS = [
   { key: 'gt', label: '大于' },
   { key: 'lt', label: '小于' },
+  { key: 'gte', label: '大于等于' },
+  { key: 'lte', label: '小于等于' },
+  { key: 'eq', label: '等于' },
 ];
 
 // 严重级别

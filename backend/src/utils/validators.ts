@@ -13,7 +13,7 @@ export const MIN_CONFIDENCE = 0.90;
 export const MAX_CONFIDENCE = 0.9999;
 export const MIN_TIME_HORIZON = 1;
 export const MAX_TIME_HORIZON = 365;
-export const VALID_MONITOR_TYPES = ['var_threshold', 'drawdown', 'concentration', 'volatility', 'liquidity'];
+export const VALID_MONITOR_TYPES = ['var_threshold', 'drawdown', 'concentration', 'volatility', 'liquidity', 'stop_loss', 'risk_event', 'volatility_spike'];
 export const VALID_MONITOR_OPERATORS = ['>', '<', '>=', '<=', '='];
 export const VALID_SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
 export const VALID_MONITOR_RULE_SEVERITY_LEVELS = ['high', 'medium', 'low'];
@@ -126,22 +126,34 @@ export function validateVaRParams(params: { confidence_level?: any; time_horizon
 }
 
 // ==================== 监控规则参数校验 ====================
-export function validateMonitorParams(params: { portfolio_id?: any; monitor_name?: any; config_name?: any; monitor_type?: any; threshold?: any; operator?: any; notification?: any; rules?: any; severity?: any; notification_methods?: any }): ValidationResult {
+export function validateMonitorParams(params: { portfolio_id?: any; monitor_name?: any; config_name?: any; monitor_type?: any; threshold?: any; threshold_value?: any; operator?: any; comparison?: any; notification?: any; rules?: any; severity?: any; notification_methods?: any }): ValidationResult {
+  // 归一化 PRD 字段名 threshold_value/comparison 到后端字段名 threshold/operator（DEF-001）
+  const normalized = { ...params };
+  if (normalized.threshold === undefined && normalized.threshold_value !== undefined) {
+    normalized.threshold = normalized.threshold_value;
+  }
+  if (normalized.operator === undefined && normalized.comparison !== undefined) {
+    normalized.operator = normalized.comparison;
+  }
+
   const errors: string[] = [];
-  const err1 = validateStringField(params.portfolio_id, 'portfolio_id', { required: true, minLength: 1 });
+  const err1 = validateStringField(normalized.portfolio_id, 'portfolio_id', { required: true, minLength: 1 });
   if (err1) errors.push(err1);
   // ✅ 支持 config_name（PRD 命名）和 monitor_name（兼容旧调用）
-  const name = params.config_name || params.monitor_name;
+  const name = normalized.config_name || normalized.monitor_name;
   if (!name || typeof name !== 'string' || name.trim().length === 0) {
     errors.push('config_name or monitor_name is required');
   } else if (name.trim().length > MAX_MONITOR_NAME_LENGTH) {
     errors.push(`config_name/monitor_name must be at most ${MAX_MONITOR_NAME_LENGTH} characters`);
   }
-  const err3 = validateEnumField(params.monitor_type, 'monitor_type', VALID_MONITOR_TYPES);
+  const err3 = validateEnumField(normalized.monitor_type, 'monitor_type', VALID_MONITOR_TYPES);
   if (err3) errors.push(err3);
-  const err4 = validateNumberField(params.threshold, 'threshold', { required: true, min: 0 });
+  // v1.3 新增监控类型（止损/风险事件/波动率异常）在后端有固定触发逻辑，阈值非必填
+  const specializedTypes = ['stop_loss', 'risk_event', 'volatility_spike'];
+  const isSpecialized = specializedTypes.includes(normalized.monitor_type);
+  const err4 = validateNumberField(normalized.threshold, 'threshold', { required: !isSpecialized, min: 0 });
   if (err4) errors.push(err4);
-  const err5 = validateEnumField(params.operator, 'operator', VALID_MONITOR_OPERATORS);
+  const err5 = validateEnumField(normalized.operator, 'operator', VALID_MONITOR_OPERATORS);
   if (err5) errors.push(err5);
 
   if (params.notification !== undefined && params.notification !== null) {

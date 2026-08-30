@@ -25,9 +25,20 @@
     "pages/monitor/rules/rules",
     "pages/monitor/create/create",
     "pages/monitor/alerts/alerts",
-    "pages/valuation/search/search",
-    "pages/valuation/result/result",
-    "pages/valuation/history/history",
+    "pages/var/history/history",
+    "pages/portfolio/templates/templates",
+    "pages/portfolio/templates/detail/detail",
+    "pages/portfolio/templates/apply/apply",
+    "pages/portfolio/structure/structure",
+    "pages/portfolio/optimize/optimize",
+    "pages/portfolio/attribution/attribution",
+    "pages/portfolio/history/history",
+    "pages/holding/import/import",
+    "pages/market/volatility/volatility",
+    "pages/monitor/events/events",
+    "pages/tool/calculator/calculator",
+    "pages/tool/history/history",
+    "pages/tool/presets/presets",
     "pages/reports/list/list",
     "pages/reports/detail/detail",
     "pages/reports/generate/generate",
@@ -37,7 +48,7 @@
   "window": {
     "backgroundTextStyle": "dark",
     "navigationBarBackgroundColor": "#1a1a2e",
-    "navigationBarTitleText": "PIAP",
+    "navigationBarTitleText": "PRME",
     "navigationBarTextStyle": "white",
     "backgroundColor": "#f5f6fa"
   },
@@ -60,10 +71,10 @@
         "selectedIconPath": "assets/icons/portfolio-active.png"
       },
       {
-        "pagePath": "pages/valuation/search/search",
-        "text": "估值",
-        "iconPath": "assets/icons/valuation.png",
-        "selectedIconPath": "assets/icons/valuation-active.png"
+        "pagePath": "pages/var/calculate/calculate",
+        "text": "风险",
+        "iconPath": "assets/icons/var.png",
+        "selectedIconPath": "assets/icons/var-active.png"
       },
       {
         "pagePath": "pages/monitor/dashboard/dashboard",

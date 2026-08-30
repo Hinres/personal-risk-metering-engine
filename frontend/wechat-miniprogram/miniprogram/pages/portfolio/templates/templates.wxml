@@ -1,0 +1,33 @@
+<view class="container">
+  <view class="header">
+    <text class="title">组合模板</text>
+    <text class="subtitle">选择模板快速建仓</text>
+  </view>
+
+  <scroll-view class="list" scroll-y>
+    <block wx:if="{{loading}}">
+      <view class="loading">加载中...</view>
+    </block>
+    <block wx:elif="{{!templates.length}}">
+      <view class="empty">暂无可用模板</view>
+    </block>
+    <block wx:else>
+      <view wx:for="{{templates}}" wx:key="template_id" class="card" bindtap="onTemplateTap" data-id="{{item.template_id}}">
+        <view class="card-header">
+          <text class="name">{{item.name}}</text>
+          <text class="risk {{item.risk_level}}">{{item.risk_level}}</text>
+        </view>
+        <view class="card-body">
+          <text class="desc">{{item.description || '无描述'}}</text>
+          <view class="allocation">
+            <text class="label">资产配置:</text>
+            <text class="value" wx:for="{{item.asset_allocation}}" wx:for-item="v" wx:for-index="k" wx:key="k">{{k}}: {{(v*100).toFixed(0)}}% </text>
+          </view>
+        </view>
+        <view class="card-footer">
+          <button class="btn-apply" size="mini" type="primary" catchtap="onApplyTap" data-id="{{item.template_id}}">套用</button>
+        </view>
+      </view>
+    </block>
+  </scroll-view>
+</view>

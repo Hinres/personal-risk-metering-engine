@@ -74,6 +74,10 @@ Page({
     wx.navigateTo({ url: '/pages/user/subscription/subscription' });
   },
 
+  goToTools() {
+    wx.navigateTo({ url: '/pages/tool/calculator/calculator' });
+  },
+
   onChooseAvatar(e) {
     const tempUrl = e.detail.avatarUrl;
     if (!tempUrl) return;

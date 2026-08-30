@@ -59,6 +59,10 @@ Page({
     wx.navigateTo({ url: '/pages/portfolio/create/create' });
   },
 
+  goToTemplates() {
+    wx.navigateTo({ url: '/pages/portfolio/templates/templates' });
+  },
+
   showActions(e) {
     const id = e.currentTarget.dataset.id;
     wx.showActionSheet({

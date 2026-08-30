@@ -8,7 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 import { errorResponse } from '../utils/response';
 import logger from '../utils/logger';
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+export const errorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
   const isDev = process.env.NODE_ENV === 'development';
   // 生产环境不记录 stack trace，防止泄露服务器目录结构
   logger.error('Error occurred', {
