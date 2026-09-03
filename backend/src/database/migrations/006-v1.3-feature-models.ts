@@ -650,7 +650,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         duration: 180,
         thumbnail_url: 'https://example.com/thumbnails/intro.png',
         category: 'tutorial',
-        tags: '入门,组合,风险',
+        tags: JSON.stringify(['入门', '组合', '风险']),
       },
       {
         topic: 'risk',
@@ -660,7 +660,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         duration: 240,
         thumbnail_url: 'https://example.com/thumbnails/risk.png',
         category: 'tutorial',
-        tags: 'VaR,最大回撤,风险指标',
+        tags: JSON.stringify(['VaR', '最大回撤', '风险指标']),
       },
       {
         topic: 'monitor',
@@ -670,7 +670,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         duration: 210,
         thumbnail_url: 'https://example.com/thumbnails/monitor.png',
         category: 'tutorial',
-        tags: '监控,预警,通知',
+        tags: JSON.stringify(['监控', '预警', '通知']),
       },
       {
         topic: 'stop_loss',
@@ -680,7 +680,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         duration: 195,
         thumbnail_url: 'https://example.com/thumbnails/stop-loss.png',
         category: 'feature',
-        tags: '止损,建议,v1.3',
+        tags: JSON.stringify(['止损', '建议', 'v1.3']),
       },
       {
         topic: 'optimization',
@@ -690,7 +690,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         duration: 260,
         thumbnail_url: 'https://example.com/thumbnails/optimization.png',
         category: 'feature',
-        tags: '优化,归因,历史对比',
+        tags: JSON.stringify(['优化', '归因', '历史对比']),
       },
     ];
 
