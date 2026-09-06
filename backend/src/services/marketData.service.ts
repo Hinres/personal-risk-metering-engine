@@ -203,6 +203,74 @@ export class MarketDataService {
     }
   }
 
+  /**
+   * 调用 Tushare API 获取每日基本面指标（PE/PB/股息率/市值/换手率）
+   * PRME-v1.3-PA-003 §4.2：分批（每批 ≤50），无 Token 时 warn + 返回空数组，
+   * 空结果不视为错误，由上层触发降级路径。
+   */
+  static async getDailyBasic(symbols: string[], tradeDate?: string): Promise<any[]> {
+    if (!getTushareToken()) {
+      logger.warn('TUSHARE_TOKEN not set, skipping daily_basic sync');
+      return [];
+    }
+    const results: any[] = [];
+    for (let i = 0; i < symbols.length; i += 50) {
+      const batch = symbols.slice(i, i + 50).map(s => this.toTsCode(s));
+      const params: Record<string, string> = { ts_code: batch.join(',') };
+      if (tradeDate) params.trade_date = tradeDate.replace(/-/g, '');
+      try {
+        const res = await axios.post(TUSHARE_API_URL, {
+          token: getTushareToken(),
+          api_name: 'daily_basic',
+          params,
+          fields: 'ts_code,trade_date,pe_ttm,pb,dv_ratio,total_mv,turnover_rate',
+        });
+        if (res.data?.data?.fields && res.data?.data?.items) {
+          const fields = res.data.data.fields;
+          results.push(...res.data.data.items.map((item: any[]) => {
+            const row: Record<string, any> = {};
+            fields.forEach((f: string, j: number) => row[f] = item[j]);
+            return row;
+          }));
+        }
+      } catch (e: any) {
+        logger.error('Tushare daily_basic failed', { error: e.message, batchIndex: i / 50 });
+      }
+    }
+    return results;
+  }
+
+  /**
+   * 调用 Tushare 财务报表接口（income / balancesheet / cashflow）
+   * PRME-v1.3-PA-003 §4.3：季报窗口期同步，写入 financial_data。
+   * 无 Token 时 warn + 返回空数组。
+   */
+  static async getFinancialReport(apiName: 'income' | 'balancesheet' | 'cashflow', tsCode: string): Promise<any[]> {
+    if (!getTushareToken()) {
+      logger.warn('TUSHARE_TOKEN not set, skipping financial report sync');
+      return [];
+    }
+    try {
+      const res = await axios.post(TUSHARE_API_URL, {
+        token: getTushareToken(),
+        api_name: apiName,
+        params: { ts_code: tsCode, limit: 8 },
+      });
+      if (res.data?.data?.fields && res.data?.data?.items) {
+        const fields = res.data.data.fields;
+        return res.data.data.items.map((item: any[]) => {
+          const row: Record<string, any> = {};
+          fields.forEach((f: string, j: number) => row[f] = item[j]);
+          return row;
+        });
+      }
+      return [];
+    } catch (e: any) {
+      logger.error(`Tushare ${apiName} failed`, { error: e.message, tsCode });
+      return [];
+    }
+  }
+
   private static toTsCode(symbol: string): string {
     const s = symbol.trim();
     if (s.startsWith('6')) return `${s}.SH`;

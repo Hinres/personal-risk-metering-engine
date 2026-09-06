@@ -204,6 +204,8 @@ export function meanVarianceOptimization(
   const maxReturn = Math.max(...meanReturns);
 
   const efficientFrontier: Array<{ target_return: number; achieved_return: number; volatility: number; sharpe: number }> = [];
+  // PRME-v1.3-PA-003：记录每个前沿点的权重向量，最优点的权重随结果返回
+  const frontierWeights: number[][] = [];
 
   const targetReturns = linspace(minReturn, maxReturn, 20);
 
@@ -228,6 +230,7 @@ export function meanVarianceOptimization(
       weights = weights.map(w => Math.max(w, 0));
       const sum = weights.reduce((a, b) => a + b, 0);
       weights = sum > 0 ? weights.map(w => w / sum) : Array(n).fill(1 / n);
+      frontierWeights.push(weights);
 
       const vol = Math.sqrt(dotProduct(weights, covMatrix.map(row => dotProduct(row, weights))));
       const ret = dotProduct(weights, meanReturns);
@@ -248,12 +251,27 @@ export function meanVarianceOptimization(
     ? efficientFrontier.reduce((max, curr) => curr.sharpe > max.sharpe ? curr : max)
     : null;
 
+  if (!best) {
+    return {
+      method: 'mean_variance',
+      weights: {},
+      expected_return: 0,
+      expected_volatility: 0,
+      sharpe_ratio: 0,
+      efficient_frontier: efficientFrontier,
+      optimal_portfolio: null,
+    };
+  }
+
+  const bestIndex = efficientFrontier.indexOf(best);
+  const optimalWeights = frontierWeights[bestIndex] || Array(n).fill(1 / n);
+
   return {
     method: 'mean_variance',
-    weights: {},
-    expected_return: 0,
-    expected_volatility: 0,
-    sharpe_ratio: 0,
+    weights: Object.fromEntries(symbols.map((s, i) => [s, Math.round(optimalWeights[i] * 10000) / 10000])),
+    expected_return: best.achieved_return,
+    expected_volatility: best.volatility,
+    sharpe_ratio: best.sharpe,
     efficient_frontier: efficientFrontier,
     optimal_portfolio: best,
   };

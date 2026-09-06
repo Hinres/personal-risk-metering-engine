@@ -17,6 +17,7 @@ import { PostgresqlFeatures1718000000003 } from '../database/migrations/003-post
 import { ComplianceEvtMigration1718000000004 } from '../database/migrations/004-compliance-evt-migration';
 import { AlertHistoryMonitorFkMigration1718000000005 } from '../database/migrations/005-alert-history-monitor-fk-migration';
 import { V13FeatureModelsMigration1718000000006 } from '../database/migrations/006-v1.3-feature-models';
+import { StockDailyBasicMigration1718000000007 } from '../database/migrations/007-stock-daily-basic-migration';
 
 // ── 所有实体导入 ──
 import { OptimizationResult } from '../models/OptimizationResult';
@@ -48,6 +49,7 @@ import { SystemConfig } from '../models/SystemConfig';
 import { UserSession } from '../models/UserSession';
 import { Stock } from '../models/Stock';
 import { FinancialData } from '../models/FinancialData';
+import { StockDailyBasic } from '../models/StockDailyBasic';
 import { ValuationRecord } from '../models/ValuationRecord';
 import { AlertRule } from '../models/AlertRule';
 import { AlertHistory } from '../models/AlertHistory';
@@ -88,7 +90,7 @@ const entities = [
   User, Portfolio, Holding, MarketData, VaRCalculation,
   StressTest, Report,
   SubscriptionPlan, Order, SystemConfig, UserSession,
-  Stock, FinancialData, ValuationRecord,
+  Stock, FinancialData, ValuationRecord, StockDailyBasic,
   VaRComponent, UserConsent, AdminApprovalRequest,
   HoldingLimit, PortfolioSnapshot, StressScenario,
   HelpContent, MarketRiskAlert, MarketRiskAlertTemplate, MarketRiskAlertAcknowledgment,
@@ -101,7 +103,7 @@ const entities = [
   StopLossSuggestion, RiskEventSource, RiskEvent, RiskEventImpact,
   MarketVolatilityIndex, MarketVolatilityHistory,
   HoldingImportTask, HoldingImportRow, PortfolioTemplate,
-  AttributionResult, OptimizationScenario, PortfolioAnalytics, VideoTutorial,
+  AttributionResult, OptimizationScenario, PortfolioAnalytics, VideoTutorial, StockDailyBasic,
 ];
 
 // ── SQLite 配置 ──
@@ -111,7 +113,7 @@ const sqliteConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006],
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007],
   extra: {
     pragmas: [
       'PRAGMA journal_mode = WAL',
@@ -132,7 +134,7 @@ const postgresConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006], // 生产环境建议手动运行：npx typeorm migration:run
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007], // 生产环境建议手动运行：npx typeorm migration:run
   extra: {
     // 连接池配置
     max: parseInt(process.env.DB_POOL_MAX || '20', 10),

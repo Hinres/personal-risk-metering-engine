@@ -190,7 +190,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       
       const tasks = initializeJobs();
 
-      expect(tasks).toHaveLength(10);
+      expect(tasks).toHaveLength(11);
       // Verify each task is a valid cron handle with stop method
       tasks.forEach((task: any) => {
         expect(task).toBeDefined();
@@ -224,7 +224,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       process.env.NODE_ENV = 'development';
       
       const tasks = initializeJobs();
-      expect(tasks).toHaveLength(10);
+      expect(tasks).toHaveLength(11);
 
       stopJobs();
 
