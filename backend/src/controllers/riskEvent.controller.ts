@@ -1,7 +1,7 @@
 /**
  * [PRME-v1.3-RM-005] 风险事件提醒
  * 文件: riskEvent.controller.ts
- * 最后更新: 2026-08-20
+ * 最后更新: 2026-09-06（DEF-V13-002：acknowledge 事件不存在返回 404）
  */
 import { Request, Response } from 'express';
 import { RiskEventService } from '../services/riskEvent.service';
@@ -28,6 +28,8 @@ export const acknowledgeRiskEvent = async (req: any, res: Response) => {
     const result = await RiskEventService.acknowledge(event_id, userId);
     return successResponse(res, result);
   } catch (error: any) {
-    return errorResponse(res, error.message, 400);
+    // DEF-V13-002：资源不存在时返回 404，而非统一 400
+    const status = error.message === 'Event not found' ? 404 : 400;
+    return errorResponse(res, error.message, status);
   }
 };

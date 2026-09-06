@@ -2,7 +2,7 @@
  * [PRME-v1.3-PA-004] 持仓批量导入
  * 文件: holdingImport.service.ts
  * 需求描述: Excel/CSV 持仓批量解析、校验与导入
- * 最后更新: 2026-08-20
+ * 最后更新: 2026-09-06（DEF-V13-001：purchase_date 兼容 Date 对象）
  */
 import { AppDataSource } from '../config/database';
 import { HoldingImportTask } from '../models/HoldingImportTask';
@@ -282,13 +282,13 @@ export class HoldingImportService {
     const name = raw.name ? String(raw.name).trim() : undefined;
     const quantity = this.parseNumber(raw.quantity);
     const costPrice = this.parseNumber(raw.cost_price);
-    const purchaseDate = raw.purchase_date ? String(raw.purchase_date).trim() : undefined;
+    const purchaseDate = this.parsePurchaseDate(raw.purchase_date);
 
     if (!symbol) errors.push({ field: 'symbol', value: '', reason: '股票代码不能为空' });
     if (quantity === null || quantity <= 0) errors.push({ field: 'quantity', value: String(raw.quantity || ''), reason: '持仓数量必须大于0' });
     if (costPrice === null || costPrice <= 0) errors.push({ field: 'cost_price', value: String(raw.cost_price || ''), reason: '成本价必须大于0' });
     if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
-      errors.push({ field: 'purchase_date', value: purchaseDate, reason: '持仓日期格式必须为 YYYY-MM-DD' });
+      errors.push({ field: 'purchase_date', value: String(purchaseDate), reason: '持仓日期格式必须为 YYYY-MM-DD' });
     }
 
     return {
@@ -304,6 +304,23 @@ export class HoldingImportService {
       remark: raw.remark ? String(raw.remark).trim() : undefined,
       errors,
     };
+  }
+
+  /**
+   * DEF-V13-001：ExcelJS 解析 CSV 时会把日期样式单元格转为 Date 对象，
+   * String(date) 得到 "Thu Jan 15 2026 00:00:00 GMT+0800 ..." 导致正则校验失败。
+   * 此处对 Date 对象格式化为 YYYY-MM-DD，字符串走原有 trim 逻辑。
+   */
+  private static parsePurchaseDate(value: any): string | undefined {
+    if (value === null || value === undefined || value === '') return undefined;
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) return String(value);
+      const y = value.getFullYear();
+      const m = String(value.getMonth() + 1).padStart(2, '0');
+      const d = String(value.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(value).trim();
   }
 
   private static parseNumber(value: any): number | null {
