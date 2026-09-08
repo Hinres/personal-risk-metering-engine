@@ -3,7 +3,7 @@
  * 文件: portfolioOptimization.controller.ts
  * 需求描述: 组合优化建议（分目标筛选主路径 + 无基本面数据降级路径）
  * 设计来源: PRME-v1.3-Optimization-Screening-Design-Supplement-20260906.md §7/§8/§9
- * 最后更新: 2026-09-06
+ * 最后更新: 2026-09-08（SIT-20260907 观察项 2：objective 枚举校验）
  */
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/database';
@@ -85,6 +85,15 @@ export const getPortfolioOptimization = async (req: any, res: Response) => {
     const { id } = req.params;
     const userId = req.user.user_id;
     const objective = (req.query.objective as string) || 'risk';
+
+    // SIT-20260907 观察项 2：非法 objective 显式 400，避免静默落入 legacy 路径造成误判
+    if (!Object.keys(OBJECTIVE_TO_METHOD).includes(objective)) {
+      return errorResponse(
+        res,
+        `Invalid objective: '${objective}'. Allowed values: ${Object.keys(OBJECTIVE_TO_METHOD).join(', ')}`,
+        400
+      );
+    }
 
     // B-06: 收益/综合目标已统一由 optimizationConsentMiddleware 检查 optimization_advice 授权
     // 此处保留 objective 校验，不再重复基于 query 参数检查 consent

@@ -4,7 +4,7 @@
  *           ① 预置 stock_daily_basic / financial_data / market_data fixture → 主路径 screening.applied=true
  *           ② 无基本面数据 → 降级路径 screening.applied=false + data_warning
  * 设计来源: PRME-v1.3-Optimization-Screening-Design-Supplement-20260906.md §8/§10
- * 最后更新: 2026-09-06
+ * 最后更新: 2026-09-08（SIT-20260907 观察项 2：非法 objective 返回 400）
  */
 import request from 'supertest';
 import app from '../../src/app';
@@ -296,6 +296,14 @@ describe('Optimization Screening Integration Test', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.screening).toBeUndefined();
       expect(res.body.data.data_warning).toBeUndefined();
+    });
+
+    it('SIT-20260907 观察项 2：非法 objective（foobar）应返回 400 而非静默走 legacy', async () => {
+      const res = await request(app)
+        .get(`/api/v1/portfolios/${mainPortfolioId}/optimize?objective=foobar`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.status).toBe(400);
+      expect(JSON.stringify(res.body)).toContain('Invalid objective');
     });
   });
 });

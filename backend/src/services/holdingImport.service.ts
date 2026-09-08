@@ -2,7 +2,7 @@
  * [PRME-v1.3-PA-004] 持仓批量导入
  * 文件: holdingImport.service.ts
  * 需求描述: Excel/CSV 持仓批量解析、校验与导入
- * 最后更新: 2026-09-06（DEF-V13-001：purchase_date 兼容 Date 对象）
+ * 最后更新: 2026-09-08（DEF-V13-003：CSV 纯数字股票代码前导零保护）
  */
 import { AppDataSource } from '../config/database';
 import { HoldingImportTask } from '../models/HoldingImportTask';
@@ -278,7 +278,7 @@ export class HoldingImportService {
 
   private static parseAndValidateRow(raw: Record<string, any>, rowNumber: number): ParsedRow {
     const errors: FieldError[] = [];
-    const symbol = String(raw.symbol || '').trim();
+    const symbol = this.normalizeSymbol(raw.symbol);
     const name = raw.name ? String(raw.name).trim() : undefined;
     const quantity = this.parseNumber(raw.quantity);
     const costPrice = this.parseNumber(raw.cost_price);
@@ -304,6 +304,26 @@ export class HoldingImportService {
       remark: raw.remark ? String(raw.remark).trim() : undefined,
       errors,
     };
+  }
+
+  /**
+   * DEF-V13-003：ExcelJS 解析 CSV 时把纯数字代码转为 number（"000001" → 1），
+   * String() 后前导零丢失且交易所推断错误（SH/SZ 颠倒）。
+   * 处理规则：number 取整转字符串；纯数字代码不足 6 位时按 A 股代码规则左补零。
+   */
+  private static normalizeSymbol(value: any): string {
+    if (value === null || value === undefined) return '';
+    let s: string;
+    if (typeof value === 'number') {
+      if (!Number.isFinite(value) || !Number.isInteger(value)) return String(value).trim();
+      s = String(Math.trunc(value));
+    } else {
+      s = String(value).trim();
+    }
+    if (/^\d+$/.test(s) && s.length < 6) {
+      s = s.padStart(6, '0');
+    }
+    return s;
   }
 
   /**
