@@ -20,6 +20,10 @@ class MemoryCache {
   private constructor() {
     // 每 60 秒清理过期项
     this.cleanupInterval = setInterval(() => this.cleanup(), 60000);
+    // [OBS-20260909-1] unref：该定时器不再阻止进程/测试 worker 退出，
+    // 消除 Jest --detectOpenHandles 残留告警；生产进程由 HTTP server 等 handle 维持，
+    // unref 不影响清理逻辑在运行期间正常执行；优雅关闭仍走 stop()
+    this.cleanupInterval.unref?.();
   }
 
   static getInstance(): MemoryCache {

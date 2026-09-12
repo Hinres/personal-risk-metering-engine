@@ -1,8 +1,20 @@
 /**
  * [PRME-PA-001] jwt 单元测试
  * 测试范围: JWT_CONFIG, env handling
- * 最后更新: 2026-07-08
+ * 最后更新: 2026-09-09
+ *
+ * [QA建议] 本文件自包含：dotenv 用例通过 jest.mock 模拟，
+ * 不再依赖 cwd/backend 目录下真实存在 .env 文件（archive 提取目录无 .env 时也能通过）
  */
+
+// 模拟 dotenv：当 jwt.ts 在非 test 环境且缺少 JWT_SECRET 时调用 dotenv.config()，
+// 由 mock 注入测试用密钥，避免依赖仓库中真实的 .env 文件
+jest.mock('dotenv', () => ({
+  config: jest.fn((options?: any) => {
+    process.env.JWT_SECRET = 'dotenv-loaded-secret-for-test';
+    return { parsed: { JWT_SECRET: 'dotenv-loaded-secret-for-test' } };
+  }),
+}));
 
 describe('jwt.ts', () => {
   const originalEnv = process.env;
@@ -41,16 +53,15 @@ describe('jwt.ts', () => {
   });
 
   it('should load dotenv in non-test environment when JWT_SECRET is missing', () => {
-    const originalEnv = process.env.NODE_ENV;
+    const originalNodeEnv = process.env.NODE_ENV;
     const originalSecret = process.env.JWT_SECRET;
     process.env.NODE_ENV = 'development';
     delete process.env.JWT_SECRET;
     jest.resetModules();
-    // dotenv should load .env and provide JWT_SECRET
+    // dotenv 已被 jest.mock 接管：jwt.ts 调 dotenv.config() 后应获得 mock 注入的密钥
     const { JWT_CONFIG } = require('../../src/config/jwt');
-    expect(JWT_CONFIG.secret).toBeDefined();
-    expect(JWT_CONFIG.secret.length).toBeGreaterThan(0);
-    process.env.NODE_ENV = originalEnv;
+    expect(JWT_CONFIG.secret).toBe('dotenv-loaded-secret-for-test');
+    process.env.NODE_ENV = originalNodeEnv;
     process.env.JWT_SECRET = originalSecret;
   });
 });
