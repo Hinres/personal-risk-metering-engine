@@ -50,6 +50,7 @@ interface ImportResult {
   valid_rows: number;
   error_rows: number;
   imported_count: number;
+  failed_count: number;
   status: string;
   errors?: { row: number; field: string; value: string; reason: string }[];
 }
@@ -102,7 +103,8 @@ export class HoldingImportService {
     const validRows = parsedRows.filter(r => r.errors.length === 0);
     const errorRows = parsedRows.filter(r => r.errors.length > 0);
 
-    // 保存行记录
+    // 保存行记录（保留 rowNumber → 行实体映射，供 created_holding_id 回填）
+    const rowEntityMap = new Map<number, HoldingImportRow>();
     for (const r of parsedRows) {
       const rawRow = rows[r.rowNumber - 2] || {};
       const rowEntity = rowRepo().create({
@@ -114,10 +116,20 @@ export class HoldingImportService {
         error_fields: r.errors.length ? JSON.stringify(r.errors) : null,
       });
       await rowRepo().save(rowEntity);
+      rowEntityMap.set(r.rowNumber, rowEntity);
     }
 
-    if (errorRows.length > 0) {
-      task.valid_rows = validRows.length;
+    const formatErrors = () =>
+      errorRows.flatMap(r => r.errors.map(e => ({
+        row: r.rowNumber,
+        field: e.field,
+        value: e.value,
+        reason: e.reason,
+      })));
+
+    // F-02：全无效 → 整单失败（保持现行语义）
+    if (validRows.length === 0) {
+      task.valid_rows = 0;
       task.error_rows = errorRows.length;
       task.status = 'failed';
       task.error_message = JSON.stringify(errorRows.flatMap(r => r.errors));
@@ -128,20 +140,16 @@ export class HoldingImportService {
         task_id: task.task_id,
         portfolio_id: portfolioId,
         total_rows: rows.length,
-        valid_rows: validRows.length,
+        valid_rows: 0,
         error_rows: errorRows.length,
         imported_count: 0,
+        failed_count: errorRows.length,
         status: 'failed',
-        errors: errorRows.flatMap(r => r.errors.map(e => ({
-          row: r.rowNumber,
-          field: e.field,
-          value: e.value,
-          reason: e.reason,
-        }))),
+        errors: formatErrors(),
       };
     }
 
-    // 导入有效行
+    // F-02：有效行在单个事务内落库（仅包有效行；事务中途异常回滚全部有效行 → 整单失败兜底）
     let importedCount = 0;
     const queryRunner = AppDataSource.createQueryRunner();
     await queryRunner.connect();
@@ -160,6 +168,8 @@ export class HoldingImportService {
           sector: r.sector || null,
           currency: 'CNY',
           status: 'active',
+          // F-01：purchase_date 写入独立列（单一事实源），metadata 双写保持兼容
+          purchase_date: r.purchase_date ? new Date(`${r.purchase_date}T00:00:00.000Z`) : null,
           metadata: {
             purchase_date: r.purchase_date,
             market: r.market,
@@ -169,12 +179,25 @@ export class HoldingImportService {
         });
         await queryRunner.manager.save(holding);
         importedCount++;
+
+        // F-02：行级追溯——回填 created_holding_id（审计需要，业务事务外快速落库）
+        const rowEntity = rowEntityMap.get(r.rowNumber);
+        if (rowEntity) {
+          rowEntity.created_holding_id = holding.holding_id;
+          await rowRepo().save(rowEntity);
+        }
       }
 
       await queryRunner.commitTransaction();
     } catch (error: any) {
       await queryRunner.rollbackTransaction();
       logger.error('Holding import transaction failed', { error: error.message });
+      // F-02：整单失败兜底，保证不出现“半截成功”数据库态
+      task.valid_rows = validRows.length;
+      task.error_rows = errorRows.length;
+      task.status = 'failed';
+      task.error_message = `导入事务失败：${error.message}`;
+      await taskRepo().save(task);
       throw error;
     } finally {
       await queryRunner.release();
@@ -183,14 +206,16 @@ export class HoldingImportService {
     // 更新组合统计
     await PortfolioService.updateStatistics(portfolioId);
 
-    // 异步触发 VaR 计算（不等待）
+    // 异步触发 VaR 计算（不等待）；有有效行入库即触发（partial 同样触发）
     this.triggerRiskCalculations(portfolioId, task.user_id).catch(e =>
       logger.error('Import triggered risk calc failed', { error: e.message })
     );
 
+    // F-02 状态机：全有效 → completed；部分成功 → partial
+    const isPartial = errorRows.length > 0;
     task.valid_rows = validRows.length;
-    task.error_rows = 0;
-    task.status = 'completed';
+    task.error_rows = errorRows.length;
+    task.status = isPartial ? 'partial' : 'completed';
     task.completed_at = new Date();
     task.triggered_var = true;
     task.triggered_stress = true;
@@ -202,9 +227,12 @@ export class HoldingImportService {
       portfolio_id: portfolioId,
       total_rows: rows.length,
       valid_rows: validRows.length,
-      error_rows: 0,
+      error_rows: errorRows.length,
       imported_count: importedCount,
-      status: 'completed',
+      failed_count: errorRows.length,
+      status: task.status,
+      // partial 场景附带行级错误明细；全有效保持现行结构（前端可忽略 failed_count=0）
+      ...(isPartial ? { errors: formatErrors() } : {}),
     };
   }
 

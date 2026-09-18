@@ -27,7 +27,8 @@ export const getHoldings = async (req: any, res: Response) => {
       return errorResponse(res, 'Portfolio not found', 404);
     }
     const holdings = await holdingRepo().find({ where: { portfolio_id: portfolioId }, order: { created_at: 'DESC' } });
-    return successResponse(res, holdings);
+    // F-01：统一序列化（含顶层 purchase_date），列表与详情口径一致
+    return successResponse(res, holdings.map(h => HoldingService.serializeHolding(h)));
   } catch (error: any) {
     return errorResponse(res, 'Failed to fetch holdings', 500);
   }
@@ -49,28 +50,8 @@ export const getHoldingById = async (req: any, res: Response) => {
       return errorResponse(res, 'Holding not found', 404);
     }
 
-    // 关键：metadata 字段存在（即使为 ''/null）也要尊重用户主动清空语义，而不是回退
-    const metadata = holding.metadata || {};
-    const hasMarket = Object.prototype.hasOwnProperty.call(metadata, 'market');
-    const market = hasMarket
-      ? (metadata.market === null || metadata.market === undefined ? '' : metadata.market)
-      : (holding.exchange || '');
-    const hasPurchaseDate = Object.prototype.hasOwnProperty.call(metadata, 'purchase_date');
-    const purchase_date = hasPurchaseDate
-      ? (metadata.purchase_date === null || metadata.purchase_date === undefined ? '' : metadata.purchase_date)
-      : null;
-    const hasRemark = Object.prototype.hasOwnProperty.call(metadata, 'remark');
-    const remark = hasRemark
-      ? (metadata.remark === null || metadata.remark === undefined ? '' : metadata.remark)
-      : '';
-    const response = {
-      ...holding,
-      portfolio_id: holding.portfolio_id,
-      market,
-      purchase_date,
-      remark,
-    };
-
+    // F-01：统一序列化（列优先、metadata 兜底；无日期返回 null，收敛原空串行为）
+    const response = HoldingService.serializeHolding(holding);
     return successResponse(res, response);
   } catch (error: any) {
     logger.error('Get holding by id failed', { error: error.message, id: req.params.id });
@@ -150,6 +131,8 @@ export const addHolding = async (req: any, res: Response) => {
 
     // 归一化前端 metadata 字段（purchase_date / remark / market）到 metadata JSON
     const metadata = HoldingService.normalizeMetadataInput(req.body);
+    // F-01：purchase_date 同步写入独立列（单一事实源 = 列，metadata 双写兼容既有编辑链路）
+    const purchaseDateCol = HoldingService.normalizePurchaseDateColumn(req.body.purchase_date);
 
     const holding = holdingRepo().create({
       portfolio_id: portfolioId,
@@ -163,6 +146,7 @@ export const addHolding = async (req: any, res: Response) => {
       market_value: marketValue,
       sector,
       industry,
+      purchase_date: purchaseDateCol === undefined ? null : purchaseDateCol,
       metadata,
     });
     await holdingRepo().save(holding);

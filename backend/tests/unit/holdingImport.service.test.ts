@@ -11,6 +11,8 @@ import { StressService } from '../../src/services/stress.service';
 import { User } from '../../src/models/User';
 import { Portfolio } from '../../src/models/Portfolio';
 import { Holding } from '../../src/models/Holding';
+import { HoldingImportTask } from '../../src/models/HoldingImportTask';
+import { HoldingImportRow } from '../../src/models/HoldingImportRow';
 import fs from 'fs';
 
 jest.mock('../../src/services/portfolio.service', () => ({
@@ -35,16 +37,27 @@ jest.mock('exceljs', () => {
   const mockSymbol = (n: number) =>
     (global as any).__TEST_SYMBOL_FACTORY__ ? (global as any).__TEST_SYMBOL_FACTORY__(n) : `00000${n}`;
 
-  const mockWorksheet = (rowCount: number) => ({
+  const getHeaders = () =>
+    (global as any).__TEST_HEADERS__ || ['symbol', 'quantity', 'cost_price'];
+
+  const getRowValues = (n: number) => {
+    // F-02 测试可注入完整行数据（__TEST_ROWS__[n-2]），否则走默认工厂
+    const customRows = (global as any).__TEST_ROWS__;
+    if (customRows && customRows[n - 2]) return [null, ...customRows[n - 2]];
+    return [null, mockSymbol(n), n * 100, 10];
+  };
+
+  const rowCount = () =>
+    ((global as any).__TEST_ROWS__ && (global as any).__TEST_ROWS__.length) || (global as any).__TEST_ROW_COUNT__ || 1;
+
+  const mockWorksheet = (_rowCount: number) => ({
     getRow: (n: number) => {
-      if (n === 1) return { values: [null, 'symbol', 'quantity', 'cost_price'] };
-      return {
-        values: [null, mockSymbol(n), n * 100, 10],
-      };
+      if (n === 1) return { values: [null, ...getHeaders()] };
+      return { values: getRowValues(n) };
     },
     eachRow: (cb: (row: any, rowNumber: number) => void) => {
-      for (let i = 2; i <= rowCount + 1; i++) {
-        cb({ values: [null, mockSymbol(i), i * 100, 10] }, i);
+      for (let i = 2; i <= rowCount() + 1; i++) {
+        cb({ values: getRowValues(i) }, i);
       }
     },
   });
@@ -157,5 +170,164 @@ describe('HoldingImportService', () => {
     await holdingRepo.delete(byTask.map(h => ({ holding_id: h.holding_id })));
     (global as any).__TEST_SYMBOL_FACTORY__ = undefined;
     fs.unlinkSync('/tmp/test-def-v13-003.csv');
+  });
+
+  // ── F-02（2026-09-18）：部分成功语义 ──
+  describe('F-02 partial 语义', () => {
+    const HEADERS = ['symbol', 'quantity', 'cost_price', 'purchase_date'];
+
+    afterEach(async () => {
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const taskRepo = AppDataSource.getRepository(HoldingImportTask);
+      const rowRepo = AppDataSource.getRepository(HoldingImportRow);
+      const tasks = await taskRepo.find({ where: { portfolio_id: portfolioId } });
+      for (const t of tasks) {
+        await rowRepo.delete({ task_id: t.task_id });
+        await holdingRepo.delete({ metadata: { import_task_id: t.task_id } } as any);
+        await taskRepo.delete({ task_id: t.task_id });
+      }
+      (global as any).__TEST_ROWS__ = undefined;
+      (global as any).__TEST_HEADERS__ = undefined;
+    });
+
+    it('F-02-1: 混合行（2 有效 + 1 无效）→ status=partial，有效行入库，行号正确', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [
+        ['600519', 100, 1680, '2026-01-15'],
+        ['000001', -5, 10, '2026-02-01'],            // 第 3 行：数量非法
+        ['600276', 200, 45.5, '2026/13/45'],         // 第 4 行：日期非法
+      ];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('partial.xlsx'));
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('partial');
+      expect(result.total_rows).toBe(3);
+      expect(result.imported_count).toBe(1);
+      expect(result.failed_count).toBe(2);
+      expect(result.error_rows).toBe(2);
+      expect(result.errors).toBeDefined();
+      // 行号 = Excel 实际行号（含表头，从 2 起）
+      expect(result.errors!.map(e => e.row).sort((a, b) => a - b)).toEqual([3, 4]);
+      expect(result.errors!.map(e => e.field).sort()).toEqual(['purchase_date', 'quantity']);
+
+      // 仅有效行落库
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const holdings = await holdingRepo.find({ where: { portfolio_id: portfolioId } });
+      const byTask = holdings.filter(h => h.metadata?.import_task_id === result.task_id);
+      expect(byTask).toHaveLength(1);
+      expect(byTask[0].symbol).toBe('600519');
+    });
+
+    it('F-02-2: created_holding_id 回填到行记录', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', 100, 1680, '2026-01-15']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('one.xlsx'));
+
+      const rowRepo = AppDataSource.getRepository(HoldingImportRow);
+      const rows = await rowRepo.find({ where: { task_id: result.task_id } });
+      expect(rows).toHaveLength(1);
+      expect(rows[0].created_holding_id).not.toBeNull();
+
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const holding = await holdingRepo.findOne({ where: { holding_id: rows[0].created_holding_id! } });
+      expect(holding).not.toBeNull();
+      expect(holding!.symbol).toBe('600519');
+    });
+
+    it('F-02-3: 全无效 → status=failed，无任何持仓产生', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [
+        ['600519', -1, 1680, '2026-01-15'],
+        ['000001', 0, 10, '2026-02-01'],
+      ];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('all-invalid.xlsx'));
+
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('failed');
+      expect(result.imported_count).toBe(0);
+      expect(result.errors).toBeDefined();
+      expect(result.errors!.length).toBeGreaterThan(0);
+
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const holdings = await holdingRepo.find({ where: { portfolio_id: portfolioId } });
+      expect(holdings.filter(h => h.metadata?.import_task_id === result.task_id)).toHaveLength(0);
+    });
+
+    it('F-02-4: 全有效 → status=completed，响应保持兼容（failed_count=0）', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [
+        ['600519', 100, 1680, '2026-01-15'],
+        ['600276', 200, 45.5, '2026-03-01'],
+      ];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('all-valid.xlsx'));
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.imported_count).toBe(2);
+      expect(result.failed_count).toBe(0);
+      // 全有效不附带 errors（与现行结构一致）
+      expect(result.errors).toBeUndefined();
+    });
+  });
+
+  // ── F-01（2026-09-18）：purchase_date 列持久化 ──
+  describe('F-01 purchase_date 列', () => {
+    afterEach(async () => {
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const taskRepo = AppDataSource.getRepository(HoldingImportTask);
+      const rowRepo = AppDataSource.getRepository(HoldingImportRow);
+      const tasks = await taskRepo.find({ where: { portfolio_id: portfolioId } });
+      for (const t of tasks) {
+        await rowRepo.delete({ task_id: t.task_id });
+        await holdingRepo.delete({ metadata: { import_task_id: t.task_id } } as any);
+        await taskRepo.delete({ task_id: t.task_id });
+      }
+      (global as any).__TEST_ROWS__ = undefined;
+      (global as any).__TEST_HEADERS__ = undefined;
+    });
+
+    it('F-01-1: 导入含日期 CSV → holdings.purchase_date 列非空且值正确（非仅 metadata）', async () => {
+      (global as any).__TEST_HEADERS__ = ['symbol', 'quantity', 'cost_price', 'purchase_date'];
+      (global as any).__TEST_ROWS__ = [
+        ['600519', 100, 1680, '2026-01-15'],
+        ['600276', 200, 45.5, '2026-03-01'],
+      ];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('with-date.xlsx'));
+      expect(result.success).toBe(true);
+
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const holdings = await holdingRepo.find({ where: { portfolio_id: portfolioId } });
+      const byTask = holdings.filter(h => h.metadata?.import_task_id === result.task_id);
+      expect(byTask).toHaveLength(2);
+
+      const toStr = (v: any) => {
+        if (!v) return null;
+        if (v instanceof Date) return v.toISOString().slice(0, 10);
+        return String(v).slice(0, 10);
+      };
+      const bySymbol = new Map(byTask.map(h => [h.symbol, h]));
+      // 断言独立列（purchase_date），而非 metadata
+      expect(toStr(bySymbol.get('600519')!.purchase_date)).toBe('2026-01-15');
+      expect(toStr(bySymbol.get('600276')!.purchase_date)).toBe('2026-03-01');
+    });
+
+    it('F-01-2: 无日期行 → purchase_date 为 null 且不报错', async () => {
+      (global as any).__TEST_HEADERS__ = ['symbol', 'quantity', 'cost_price'];
+      (global as any).__TEST_ROWS__ = [['600519', 100, 1680]];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('no-date.xlsx'));
+      expect(result.success).toBe(true);
+
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const holding = (await holdingRepo.find({ where: { portfolio_id: portfolioId } }))
+        .find(h => h.metadata?.import_task_id === result.task_id);
+      expect(holding).toBeDefined();
+      expect(holding!.purchase_date === null || holding!.purchase_date === undefined).toBe(true);
+    });
   });
 });

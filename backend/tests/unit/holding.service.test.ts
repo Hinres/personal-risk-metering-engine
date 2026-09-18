@@ -266,7 +266,9 @@ describe('HoldingService', () => {
 
       expect(saved.metadata).toEqual({ market: 'HK', purchase_date: '2026-01-01', remark: 'note' });
       expect(saved.quantity).toBe(200);
-      expect(saved.purchase_date).toBeUndefined();
+      // F-01（2026-09-18）：purchase_date 升级为独立列并双写；remark/market 仍只进 metadata
+      expect(saved.purchase_date).toBeInstanceOf(Date);
+      expect(saved.purchase_date.toISOString().slice(0, 10)).toBe('2026-01-01');
       expect(saved.remark).toBeUndefined();
       expect(saved.market).toBeUndefined();
     });

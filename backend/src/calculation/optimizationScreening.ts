@@ -306,7 +306,9 @@ export function scorePool(objective: ScreeningObjective, pool: CandidateInfo[]):
   for (const c of pool) {
     const dp = dvPct.get(pool.indexOf(c));
     if (dp === undefined || !c.dv_by_year.length) { c.score = null; c.reason = null; continue; }
-    const continuity = c.dv_by_year.filter(y => y.dv_ratio > 0).length / 3;
+    // TASK-2（2026-09-17 Kernel 拍板，方案 B）：持续性评分分母 = 该票实际有快照的年份数，
+    // 与硬筛选“有快照年份 ≥2 年分红”口径一致；无快照年份不参与分母。
+    const continuity = c.dv_by_year.filter(y => y.dv_ratio > 0).length / c.dv_by_year.length;
     c.score = 0.6 * dp + 0.4 * continuity;
     const avg = c.dv_by_year.reduce((s, y) => s + y.dv_ratio, 0) / c.dv_by_year.length;
     c.reason = `近3年平均股息率${avg.toFixed(1)}%（池内前${pctTop(dp)}%），连续${c.dv_by_year.filter(y => y.dv_ratio > 0).length}年分红`;

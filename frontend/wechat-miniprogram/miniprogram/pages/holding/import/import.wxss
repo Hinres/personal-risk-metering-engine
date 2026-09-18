@@ -67,6 +67,10 @@
 .result-item:last-child { border-bottom: none; }
 .success { color: #28a745; font-weight: bold; }
 .error { color: #dc3545; font-weight: bold; }
+/* F-02：三分支状态样式 */
+.status-completed { color: #28a745; }
+.status-partial { color: #e6a23c; }
+.status-failed { color: #dc3545; }
 .error-list {
   margin-top: 16rpx;
 }

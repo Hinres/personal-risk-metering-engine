@@ -16,6 +16,7 @@ import { scheduleExportCleanup } from './exportCleanup.job';
 import { scheduleDailyPortfolioSnapshot } from './dailyPortfolioSnapshot.job';
 import { scheduleRiskEventCollection } from './riskEventCollection.job';
 import { scheduleFundamentalSync } from './fundamentalSync.job';
+import { scheduleMarketVolatility } from './marketVolatility.job';
 
 let scheduledTasks: ReturnType<typeof cron.schedule>[] = [];
 
@@ -33,6 +34,7 @@ export function initializeJobs(): ReturnType<typeof cron.schedule>[] {
       scheduleDailyPortfolioSnapshot(),
       scheduleRiskEventCollection(),
       scheduleFundamentalSync(),
+      scheduleMarketVolatility(),
     ];
     console.log('Cron jobs initialized');
 

@@ -93,6 +93,14 @@ jest.mock('../../src/jobs/riskEventCollection.job', () => ({
   }),
 }));
 
+jest.mock('../../src/jobs/marketVolatility.job', () => ({
+  scheduleMarketVolatility: jest.fn().mockReturnValue({
+    stop: jest.fn(),
+    start: jest.fn(),
+    getStatus: jest.fn().mockReturnValue('scheduled'),
+  }),
+}));
+
 describe('Jobs - Cron Handle Management & Shutdown', () => {
   let mockTask: any;
   let scheduleMarketDataSync: jest.MockedFunction<any>;
@@ -105,6 +113,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
   let scheduleDatabaseBackup: jest.MockedFunction<any>;
   let scheduleDailyPortfolioSnapshot: jest.MockedFunction<any>;
   let scheduleRiskEventCollection: jest.MockedFunction<any>;
+  let scheduleMarketVolatility: jest.MockedFunction<any>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -125,6 +134,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     const databaseBackupModule = require('../../src/jobs/databaseBackup.job');
     const dailyPortfolioSnapshotModule = require('../../src/jobs/dailyPortfolioSnapshot.job');
     const riskEventCollectionModule = require('../../src/jobs/riskEventCollection.job');
+    const marketVolatilityModule = require('../../src/jobs/marketVolatility.job');
 
     scheduleMarketDataSync = marketDataSyncModule.scheduleMarketDataSync;
     scheduleVaRCalculation = varCalcModule.scheduleVaRCalculation;
@@ -136,6 +146,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     scheduleDatabaseBackup = databaseBackupModule.scheduleDatabaseBackup;
     scheduleDailyPortfolioSnapshot = dailyPortfolioSnapshotModule.scheduleDailyPortfolioSnapshot;
     scheduleRiskEventCollection = riskEventCollectionModule.scheduleRiskEventCollection;
+    scheduleMarketVolatility = marketVolatilityModule.scheduleMarketVolatility;
 
     scheduleMarketDataSync.mockReturnValue(mockTask);
     scheduleVaRCalculation.mockReturnValue(mockTask);
@@ -147,6 +158,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
     scheduleDatabaseBackup.mockReturnValue(mockTask);
     scheduleDailyPortfolioSnapshot.mockReturnValue(mockTask);
     scheduleRiskEventCollection.mockReturnValue(mockTask);
+    scheduleMarketVolatility.mockReturnValue(mockTask);
   });
 
   afterEach(() => {
@@ -185,12 +197,12 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       process.env.NODE_ENV = originalEnv;
     });
 
-    it('CRON-002: should return array of 10 task handles in non-test env', () => {
+    it('CRON-002: should return array of 12 task handles in non-test env', () => {
       process.env.NODE_ENV = 'development';
       
       const tasks = initializeJobs();
 
-      expect(tasks).toHaveLength(11);
+      expect(tasks).toHaveLength(12);
       // Verify each task is a valid cron handle with stop method
       tasks.forEach((task: any) => {
         expect(task).toBeDefined();
@@ -224,7 +236,7 @@ describe('Jobs - Cron Handle Management & Shutdown', () => {
       process.env.NODE_ENV = 'development';
       
       const tasks = initializeJobs();
-      expect(tasks).toHaveLength(11);
+      expect(tasks).toHaveLength(12);
 
       stopJobs();
 

@@ -12,10 +12,40 @@ import { PortfolioService } from './portfolio.service';
 const holdingRepo = () => AppDataSource.getRepository(Holding);
 const portfolioRepo = () => AppDataSource.getRepository(Portfolio);
 
+/** 兼容 date 列与 metadata 的日期串提取（YYYY-MM-DD 或 null） */
+function toDateString(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) {
+    if (isNaN(value.getTime())) return null;
+    return value.toISOString().slice(0, 10);
+  }
+  const s = String(value).trim();
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
 export class HoldingService {
+  /**
+   * 统一持仓序列化（F-01）：列表与详情接口共用。
+   * purchase_date 取值顺序：列优先 → metadata 兜底 → null（无日期时返回 null 而非空串）。
+   * market / remark 保持原详情接口的顶层展平语义（metadata 键存在即尊重用户清空值）。
+   */
+  static serializeHolding(h: Holding) {
+    const metadata = (h.metadata || {}) as Record<string, any>;
+    const has = (k: string) => Object.prototype.hasOwnProperty.call(metadata, k);
+    const val = (k: string) => (metadata[k] === null || metadata[k] === undefined ? '' : metadata[k]);
+    return {
+      ...h,
+      market: has('market') ? val('market') : (h.exchange || ''),
+      purchase_date: toDateString(h.purchase_date) ?? toDateString(metadata.purchase_date),
+      remark: has('remark') ? val('remark') : '',
+    };
+  }
+
   /**
    * 归一化前端输入的 metadata 相关字段到 metadata JSON
    * 供 add / update 复用，避免新增/编辑场景字段丢失
+   * （F-01：purchase_date 同时双写 holdings.purchase_date 列，读取列优先）
    */
   static normalizeMetadataInput(data: any, existingMetadata: Record<string, any> = {}) {
     const metadata = { ...existingMetadata };
@@ -29,6 +59,18 @@ export class HoldingService {
       metadata.market = data.market;
     }
     return metadata;
+  }
+
+  /**
+   * F-01：purchase_date 列写入规则
+   * - 合法 YYYY-MM-DD → 该日期
+   * - 空串 / null（前端清空）→ NULL
+   * - undefined（未提交该字段）→ 保持现状（返回 undefined 表示不修改）
+   */
+  static normalizePurchaseDateColumn(value: unknown): Date | null | undefined {
+    if (value === undefined) return undefined;
+    const s = toDateString(value);
+    return s ? new Date(`${s}T00:00:00.000Z`) : null;
   }
 
   static async getByPortfolio(portfolioId: string, userId: string) {
@@ -72,6 +114,7 @@ export class HoldingService {
 
     const marketValue = currentPrice ? Number(data.quantity) * Number(currentPrice) : null;
     const metadata = this.normalizeMetadataInput(data);
+    const purchaseDate = this.normalizePurchaseDateColumn(data.purchase_date);
 
     const holding = holdingRepo().create({
       portfolio_id: portfolioId,
@@ -86,6 +129,7 @@ export class HoldingService {
       weight: data.weight || null,
       sector: data.sector || null,
       industry: data.industry || null,
+      purchase_date: purchaseDate === undefined ? null : purchaseDate,
       metadata,
     });
     await holdingRepo().save(holding);
@@ -102,6 +146,13 @@ export class HoldingService {
 
     // 归一化前端字段到 metadata JSON（add/update 复用同一套映射）
     holding.metadata = this.normalizeMetadataInput(data, holding.metadata || {});
+
+    // F-01：purchase_date 同步写列（undefined 表示未提交，保持列现状）
+    const purchaseDateCol = this.normalizePurchaseDateColumn(data.purchase_date);
+    if (purchaseDateCol !== undefined) {
+      holding.purchase_date = purchaseDateCol;
+    }
+
     delete data.purchase_date;
     delete data.remark;
     delete data.market;

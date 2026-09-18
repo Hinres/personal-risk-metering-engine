@@ -288,6 +288,61 @@ describe('scorePool（§6.2）', () => {
     expect(scores.get('A')).toBeCloseTo(1);
     expect(pool.find(c => c.symbol === 'A')!.reason).toContain('连续3年分红');
   });
+
+  // TASK-2（2026-09-17 Kernel 拍板，方案 B）：持续性评分分母 = 实际有快照的年份数
+  it('TASK-2: 2 年快照且均分红 → 硬筛选通过，评分分母=2（continuity=1.0）', () => {
+    const pool = [
+      makeCandidate({ symbol: 'NEW', dv_by_year: [
+        { year: 2025, dv_ratio: 3 }, { year: 2026, dv_ratio: 3.2 },
+      ] }),
+      makeCandidate({ symbol: 'OLD', dv_by_year: [
+        { year: 2024, dv_ratio: 2 }, { year: 2025, dv_ratio: 2 }, { year: 2026, dv_ratio: 2 },
+      ] }),
+    ];
+    // 硬筛选：新股（2 年快照均分红）有意放宽通过
+    const passed = hardScreen({ objective: 'return_dividend', pool, relaxed: false });
+    expect(passed.has('NEW')).toBe(true);
+
+    const scores = scorePool('return_dividend', pool);
+    const cNew = pool.find(c => c.symbol === 'NEW')!;
+    // NEW 平均股息率池内最高 → 分位 dp=1；continuity = 2/2 = 1.0（分母=实际快照年数）
+    // 期望 score = 0.6×1 + 0.4×1.0 = 1.0；若误用固定分母 3 则仅为 0.6+0.4×(2/3)≈0.867
+    expect(scores.get('NEW')).toBeCloseTo(1, 6);
+    expect(cNew.reason).toContain('连续2年分红');
+  });
+
+  it('TASK-2: 3 年快照 2 年分红 → 通过，评分=0.6×分位+0.4×(2/3)', () => {
+    const pool = [
+      makeCandidate({ symbol: 'A', dv_by_year: [
+        { year: 2024, dv_ratio: 3.2 }, { year: 2025, dv_ratio: 3.0 }, { year: 2026, dv_ratio: 0 },
+      ] }),
+      makeCandidate({ symbol: 'B', dv_by_year: [
+        { year: 2024, dv_ratio: 1 }, { year: 2025, dv_ratio: 1 }, { year: 2026, dv_ratio: 1 },
+      ] }),
+    ];
+    const passed = hardScreen({ objective: 'return_dividend', pool, relaxed: false });
+    expect(passed.has('A')).toBe(true);
+
+    const scores = scorePool('return_dividend', pool);
+    const a = pool.find(c => c.symbol === 'A')!;
+    // 手工复算：avg(A)=7/3 > avg(B)=1 → 池内分位 dp=1；continuity=2/3
+    expect(scores.get('A')).toBeCloseTo(0.6 * 1 + 0.4 * (2 / 3), 6);
+    expect(a.reason).toContain('连续2年分红');
+  });
+
+  it('TASK-2: 评分分母不再出现固定 3（1 年快照按 1/1=1.0 计）', () => {
+    const pool = [
+      makeCandidate({ symbol: 'SOLO', dv_by_year: [{ year: 2026, dv_ratio: 2.5 }] }),
+      makeCandidate({ symbol: 'B', dv_by_year: [
+        { year: 2024, dv_ratio: 1 }, { year: 2025, dv_ratio: 1 }, { year: 2026, dv_ratio: 1 },
+      ] }),
+    ];
+    const scores = scorePool('return_dividend', pool);
+    // 单年数据：continuity = 1/1 = 1.0；若分母固定为 3 则 continuity 仅为 1/3
+    const solo = pool.find(c => c.symbol === 'SOLO')!;
+    expect(scores.has('SOLO')).toBe(true);
+    expect(solo.score!).toBeGreaterThan(0.6 + 0.4 / 3);
+  });
 });
 
 describe('normalizeWeights（§6.3）', () => {

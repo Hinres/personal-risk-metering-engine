@@ -77,6 +77,9 @@ export class Holding {
   @Index()
   status!: string;
 
+  @Column({ type: 'date', nullable: true })
+  purchase_date!: Date | null;
+
   @JsonColumn({ nullable: true })
   metadata!: Record<string, any> | null;
 

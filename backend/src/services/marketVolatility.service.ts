@@ -7,6 +7,7 @@
 import { AppDataSource } from '../config/database';
 import { MarketVolatilityIndex } from '../models/MarketVolatilityIndex';
 import { MarketVolatilityHistory } from '../models/MarketVolatilityHistory';
+import { MarketData } from '../models/MarketData';
 import { MarketDataService } from './marketData.service';
 import logger from '../utils/logger';
 import Decimal from 'decimal.js';
@@ -183,7 +184,38 @@ export class MarketVolatilityService {
       return { volatility: 0, percentile: 0 };
     }
 
+    // getHistory 按 trade_date DESC 返回，反转为时间升序
     const prices = history.map(h => parseFloat(h.close_price?.toString() || '0')).reverse();
+    return this.computeRollingVolatility(prices);
+  }
+
+  /**
+   * F-03B：计算“截至 asOfDate（含当日）”的滚动 20 日年化波动率与历史分位。
+   * 与 calculateIndexVolatility 复用同一滚动窗口算法；
+   * 当 asOfDate 为最新交易日时，两者结果一致（交叉验证基准）。
+   */
+  static async calculateIndexVolatilityAsOf(symbol: string, asOfDate: string, window = 252) {
+    const records = await AppDataSource.getRepository(MarketData)
+      .createQueryBuilder('m')
+      .where('m.symbol = :symbol', { symbol })
+      .andWhere('m.trade_date <= :asOf', { asOf: asOfDate })
+      .orderBy('m.trade_date', 'DESC')
+      .take(window + 1)
+      .getMany();
+
+    if (records.length < 21) {
+      logger.warn(`Insufficient data for volatility index ${symbol} as of ${asOfDate}: ${records.length} days`);
+      return { volatility: 0, percentile: 0 };
+    }
+
+    const prices = records.map(h => parseFloat(h.close_price?.toString() || '0')).reverse();
+    return this.computeRollingVolatility(prices);
+  }
+
+  /**
+   * 滚动 20 日年化波动率核心算法（时间升序价格序列 → 最新值 + 池内分位）
+   */
+  private static computeRollingVolatility(prices: number[]): { volatility: number; percentile: number } {
     const returns: number[] = [];
     for (let i = 1; i < prices.length; i++) {
       returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);

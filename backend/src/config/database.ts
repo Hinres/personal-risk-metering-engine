@@ -18,6 +18,7 @@ import { ComplianceEvtMigration1718000000004 } from '../database/migrations/004-
 import { AlertHistoryMonitorFkMigration1718000000005 } from '../database/migrations/005-alert-history-monitor-fk-migration';
 import { V13FeatureModelsMigration1718000000006 } from '../database/migrations/006-v1.3-feature-models';
 import { StockDailyBasicMigration1718000000007 } from '../database/migrations/007-stock-daily-basic-migration';
+import { PurchaseDateMigration1718000000008 } from '../database/migrations/008-v1.3.1-purchase-date-migration';
 
 // ── 所有实体导入 ──
 import { OptimizationResult } from '../models/OptimizationResult';
@@ -113,7 +114,7 @@ const sqliteConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007],
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007, PurchaseDateMigration1718000000008],
   extra: {
     pragmas: [
       'PRAGMA journal_mode = WAL',
@@ -134,7 +135,7 @@ const postgresConfig: DataSourceOptions = {
   entities,
   synchronize: isDevelopment || isTest,
   logging: isDevelopment ? ['query', 'error'] : ['error'],
-  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007], // 生产环境建议手动运行：npx typeorm migration:run
+  migrations: [InitialSchema1718000000001, NamingAlignmentMigration1718000000002, PostgresqlFeatures1718000000003, ComplianceEvtMigration1718000000004, AlertHistoryMonitorFkMigration1718000000005, V13FeatureModelsMigration1718000000006, StockDailyBasicMigration1718000000007, PurchaseDateMigration1718000000008], // 生产环境建议手动运行：npx typeorm migration:run
   extra: {
     // 连接池配置
     max: parseInt(process.env.DB_POOL_MAX || '20', 10),

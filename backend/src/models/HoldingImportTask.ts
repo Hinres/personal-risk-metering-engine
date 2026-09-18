@@ -54,7 +54,8 @@ export class HoldingImportTask {
   error_rows!: number;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
-  status!: 'pending' | 'processing' | 'completed' | 'failed';
+  /** F-02（2026-09-18）：partial = 部分成功（有有效行入库，同时存在无效行） */
+  status!: 'pending' | 'processing' | 'completed' | 'partial' | 'failed';
 
   @Column({ type: 'text', nullable: true })
   error_message!: string | null;

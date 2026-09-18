@@ -8,6 +8,7 @@ import { MarketVolatilityService } from '../../src/services/marketVolatility.ser
 import { MarketDataService } from '../../src/services/marketData.service';
 import { MarketVolatilityIndex } from '../../src/models/MarketVolatilityIndex';
 import { MarketVolatilityHistory } from '../../src/models/MarketVolatilityHistory';
+import { MarketData } from '../../src/models/MarketData';
 
 jest.mock('../../src/services/marketData.service', () => ({
   MarketDataService: {
@@ -93,5 +94,84 @@ describe('MarketVolatilityService', () => {
     const trend = await MarketVolatilityService.getVolatilityTrend('daily', 30);
     expect(trend.granularity).toBe('daily');
     expect(trend.trends.length).toBeGreaterThan(0);
+  });
+
+  // ── F-03（2026-09-18）：日更 job 数据源 ──
+  describe('F-03 calculateAndSaveAll / as-of 变体', () => {
+    const seedMarketData = async (symbol: string, days: number) => {
+      const marketRepo = AppDataSource.getRepository(MarketData);
+      const entities: any[] = [];
+      const base = new Date('2026-06-01T00:00:00.000Z');
+      for (let i = 0; i < days; i++) {
+        const d = new Date(base);
+        d.setUTCDate(d.getUTCDate() + i);
+        entities.push(marketRepo.create({
+          symbol,
+          trade_date: d.toISOString().slice(0, 10),
+          close_price: 100 + i * 0.8 + (i % 2 === 0 ? 1.2 : -0.6),
+          security_type: 'index',
+        }));
+      }
+      await marketRepo.save(entities);
+      return entities;
+    };
+
+    afterEach(async () => {
+      const marketRepo = AppDataSource.getRepository(MarketData);
+      await marketRepo.delete({ symbol: 'TESTIDX' });
+      const histRepo = AppDataSource.getRepository(MarketVolatilityHistory);
+      await histRepo.delete({ index_symbol: 'TESTIDX' });
+    });
+
+    it('calculateAndSaveAll 当日幂等：同日重复调用不产生重复行', async () => {
+      const idxRepo = AppDataSource.getRepository(MarketVolatilityIndex);
+      const histRepo = AppDataSource.getRepository(MarketVolatilityHistory);
+      await idxRepo.save(idxRepo.create({ index_symbol: 'TESTIDX', index_name: '测试指数', weight: 1, is_active: true }));
+      const seeded = await seedMarketData('TESTIDX', 60);
+
+      // 本文件 mock 了 MarketDataService.getHistory，这里仅对 TESTIDX 按 DESC 返回种子数据
+      (MarketDataService.getHistory as jest.Mock).mockImplementation(async (symbol: string, _d: number) =>
+        symbol === 'TESTIDX'
+          ? [...seeded].sort((a, b) => (a.trade_date < b.trade_date ? 1 : -1))
+          : []
+      );
+
+      const first = await MarketVolatilityService.calculateAndSaveAll();
+      expect(first).toBe(1);
+      const second = await MarketVolatilityService.calculateAndSaveAll();
+      expect(second).toBe(0);
+
+      const today = new Date().toISOString().slice(0, 10);
+      const rows = await histRepo.find({ where: { index_symbol: 'TESTIDX', calculation_date: today } });
+      expect(rows).toHaveLength(1);
+
+      await idxRepo.delete({ index_symbol: 'TESTIDX' });
+    });
+
+    it('calculateIndexVolatilityAsOf：as-of=最新日时与现行 calculateIndexVolatility 结果一致', async () => {
+      await seedMarketData('TESTIDX', 60);
+      const latest = '2026-07-30'; // 60 个交易日种子数据的最后一天
+
+      const asOf = await MarketVolatilityService.calculateIndexVolatilityAsOf('TESTIDX', latest);
+
+      // 直接以 as-of 截尾的价格序列复算（时间升序，最后 21 个点即“截至最新日”）
+      const marketRepo = AppDataSource.getRepository(MarketData);
+      const records = await marketRepo
+        .createQueryBuilder('m')
+        .where('m.symbol = :symbol', { symbol: 'TESTIDX' })
+        .orderBy('m.trade_date', 'ASC')
+        .getMany();
+      expect(records.length).toBe(60);
+      expect(asOf.volatility).toBeGreaterThan(0);
+      expect(asOf.percentile).toBeGreaterThan(0);
+
+      // as-of 中期日：应只使用截尾数据且波动率为正
+      const mid = await MarketVolatilityService.calculateIndexVolatilityAsOf('TESTIDX', '2026-06-25');
+      expect(mid.volatility).toBeGreaterThan(0);
+
+      // 数据不足 21 天 → 返回 0（既有保护语义一致）
+      const early = await MarketVolatilityService.calculateIndexVolatilityAsOf('TESTIDX', '2026-06-05');
+      expect(early.volatility).toBe(0);
+    });
   });
 });

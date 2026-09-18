@@ -14,7 +14,10 @@
 
   <block wx:if="{{result}}">
     <view class="result-card">
-      <view class="result-title">导入结果</view>
+      <!-- F-02：按 status 三分支展示（completed 绿 / partial 黄 / failed 红） -->
+      <view class="result-title {{result.status === 'completed' ? 'status-completed' : (result.status === 'partial' ? 'status-partial' : 'status-failed')}}">
+        {{result.status === 'completed' ? '导入成功' : (result.status === 'partial' ? '部分成功' : '导入失败')}}
+      </view>
       <view class="result-item">
         <text>总行数</text>
         <text>{{result.total_rows}}</text>
@@ -23,10 +26,11 @@
         <text>成功行数</text>
         <text class="success">{{result.imported_count}}</text>
       </view>
-      <view class="result-item" wx:if="{{result.error_rows > 0}}">
+      <view class="result-item" wx:if="{{result.failed_count > 0 || result.error_rows > 0}}">
         <text>失败行数</text>
-        <text class="error">{{result.error_rows}}</text>
+        <text class="error">{{result.failed_count !== undefined ? result.failed_count : result.error_rows}}</text>
       </view>
+      <!-- partial / failed 均展示失败明细（行号 + 原因） -->
       <view class="error-list" wx:if="{{result.errors && result.errors.length}}">
         <view wx:for="{{result.errors}}" wx:key="row" class="error-item">
           第{{item.row}}行 - {{item.field}}: {{item.reason}}

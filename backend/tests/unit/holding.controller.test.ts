@@ -16,6 +16,9 @@ jest.mock('../../src/services/holding.service', () => ({
     update: jest.fn(),
     delete: jest.fn(),
     normalizeMetadataInput: jest.requireActual('../../src/services/holding.service').HoldingService.normalizeMetadataInput,
+    // F-01（2026-09-18）：序列化与 purchase_date 列写入使用真实实现
+    serializeHolding: jest.requireActual('../../src/services/holding.service').HoldingService.serializeHolding,
+    normalizePurchaseDateColumn: jest.requireActual('../../src/services/holding.service').HoldingService.normalizePurchaseDateColumn,
   },
 }));
 jest.mock('../../src/config/database', () => ({
@@ -175,7 +178,10 @@ describe('holding.controller', () => {
         .mockReturnValueOnce(portfolioRepo)
         .mockReturnValueOnce(holdingRepo);
       await holdingController.getHoldings(req as any, res);
-      expect(successResponse).toHaveBeenCalledWith(res, [{ symbol: 'AAPL' }]);
+      expect(successResponse).toHaveBeenCalledWith(res, [
+        // F-01：列表接口现统一经 serializeHolding 序列化（含顶层 purchase_date 等字段）
+        expect.objectContaining({ symbol: 'AAPL' }),
+      ]);
     });
 
     it('should handle error', async () => {
