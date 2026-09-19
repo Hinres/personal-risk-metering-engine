@@ -35,6 +35,7 @@ import marketAlertRoutes from './marketAlert.routes';
 import loginSecurityRoutes from './loginSecurity.routes';
 import auditIntegrityRoutes from './auditIntegrity.routes';
 import databaseBackupRoutes from './databaseBackup.routes';
+import feedbackRoutes from './feedback.routes';
 
 const router = Router();
 
@@ -67,6 +68,7 @@ router.use('/anonymization', anonymizationRoutes);
 router.use('/audit-logs', auditRoutes);
 router.use('/audit-logs', auditIntegrityRoutes);
 router.use('/system', databaseBackupRoutes);
+router.use('/', feedbackRoutes);
 router.use('/', swaggerRoutes);
 
 export default router;
