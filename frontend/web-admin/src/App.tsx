@@ -21,6 +21,8 @@ const VarCalculator = React.lazy(() => import('./pages/VarCalculator/VarCalculat
 const UserSettings = React.lazy(() => import('./pages/UserSettings/UserSettings'));
 const Help = React.lazy(() => import('./pages/Help/Help'));
 const AuditLogs = React.lazy(() => import('./pages/AuditLogs/AuditLogs'));
+const Feedback = React.lazy(() => import('./pages/Feedback/Feedback'));
+const PortfolioDetailPage = React.lazy(() => import('./pages/PortfolioDetail/PortfolioDetail'));
 
 const LoadingFallback = () => (
   <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -75,6 +77,7 @@ const App: React.FC = () => {
         <Route path="/dashboard" element={<PrivateRoute element={<Dashboard />} />} />
         <Route path="/users" element={<PrivateRoute element={<Users />} />} />
         <Route path="/portfolios" element={<PrivateRoute element={<Portfolios />} />} />
+        <Route path="/portfolios/:portfolioId" element={<PrivateRoute element={<PortfolioDetailPage />} />} />
         <Route path="/var" element={<PrivateRoute element={<VaRPage />} />} />
         <Route path="/stress-tests" element={<PrivateRoute element={<StressTests />} />} />
         <Route path="/monitoring" element={<PrivateRoute element={<Monitoring />} />} />
@@ -84,6 +87,7 @@ const App: React.FC = () => {
         <Route path="/var-calculator" element={<PrivateRoute element={<VarCalculator />} />} />
         <Route path="/user-settings" element={<PrivateRoute element={<UserSettings />} />} />
         <Route path="/help" element={<PrivateRoute element={<Help />} />} />
+        <Route path="/feedbacks" element={<PrivateRoute element={<Feedback />} />} />
         <Route path="/audit-logs" element={<PrivateRoute element={<AuditLogs />} />} />
         <Route path="/reports" element={<PrivateRoute element={<Reports />} />} />
         <Route path="/subscriptions" element={<PrivateRoute element={<Subscriptions />} />} />

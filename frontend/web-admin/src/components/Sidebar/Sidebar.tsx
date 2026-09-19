@@ -7,7 +7,7 @@ import {
   LogoutOutlined, WalletOutlined, ShoppingOutlined,
   AlertOutlined, LineChartOutlined, BellOutlined,
   FundOutlined, ToolOutlined, QuestionCircleOutlined,
-  AuditOutlined, CalculatorOutlined
+  AuditOutlined, CalculatorOutlined, MessageOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -27,6 +27,7 @@ const menuItems = [
   { key: '/subscriptions', icon: <ShoppingOutlined />, label: '订阅管理' },
   { key: '/user-settings', icon: <ToolOutlined />, label: '用户设置' },
   { key: '/help', icon: <QuestionCircleOutlined />, label: '帮助教程' },
+  { key: '/feedbacks', icon: <MessageOutlined />, label: '反馈管理' },
   { key: '/audit-logs', icon: <AuditOutlined />, label: '审计日志' },
   { key: '/system', icon: <SettingOutlined />, label: '系统设置' },
   { key: '/login', icon: <LogoutOutlined />, label: '退出登录' },
