@@ -2,10 +2,11 @@
  * [PRME-INFRA-002] 审计与合规 - 导出文件定时清理
  * 文件: exportCleanup.job.ts
  * 需求描述: T-28 定期清理过期导出文件和数据库记录
- * 最后更新: 2026-06-19
+ * 最后更新: 2026-09-16
  */
 import { AppDataSource } from '../config/database';
 import { DataExportRequest } from '../models/DataExportRequest';
+import { StockDailyBasic } from '../models/StockDailyBasic';
 import { LessThan } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,6 +14,15 @@ import cron from 'node-cron';
 import logger from '../utils/logger';
 
 const exportRepo = () => AppDataSource.getRepository(DataExportRequest);
+const dailyBasicRepo = () => AppDataSource.getRepository(StockDailyBasic);
+
+/** 格式化为 YYYY-MM-DD（与 stock_daily_basic.trade_date 存储格式一致） */
+function toDateStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 /**
  * 清理过期导出文件和数据库记录
@@ -92,6 +102,34 @@ export async function cleanupExpiredExports(exportsDirOverride?: string): Promis
 }
 
 /**
+ * [PRME-v1.3-PA-003 §4.1] 清理 stock_daily_basic 超期快照
+ * 口径：删除 trade_date 早于"当前日期往前 3 个自然年"的全部行
+ * （SQL 等价：DELETE FROM stock_daily_basic WHERE trade_date < date('now', '-3 years')）
+ * trade_date 上有 idx_sdb_date 索引，删除条件可走索引
+ * @returns 清理统计 { deletedRows }
+ */
+export async function cleanupExpiredDailyBasicSnapshots(): Promise<{ deletedRows: number }> {
+  try {
+    const now = new Date();
+    const cutoff = new Date(now.getFullYear() - 3, now.getMonth(), now.getDate());
+    const cutoffStr = toDateStr(cutoff);
+
+    logger.info('Daily basic snapshot cleanup started', { cutoff: cutoffStr });
+
+    const deleteResult = await dailyBasicRepo().delete({
+      trade_date: LessThan(cutoffStr as any),
+    });
+    const deletedRows = deleteResult.affected ?? 0;
+
+    logger.info('Daily basic snapshot cleanup completed', { deletedRows });
+    return { deletedRows };
+  } catch (error: any) {
+    logger.error('Daily basic snapshot cleanup failed', { error: error.message });
+    throw error;
+  }
+}
+
+/**
  * 调度导出清理定时任务
  * 默认每天凌晨 2:00 执行
  */
@@ -103,6 +141,12 @@ export function scheduleExportCleanup(): ReturnType<typeof cron.schedule> {
       await cleanupExpiredExports();
     } catch (error: any) {
       logger.error('Scheduled export cleanup failed', { error: error.message });
+    }
+    // 同一凌晨 2:00 窗口，顺序清理超期基本面快照（§4.1 保留最近 3 个自然年）
+    try {
+      await cleanupExpiredDailyBasicSnapshots();
+    } catch (error: any) {
+      logger.error('Scheduled daily basic snapshot cleanup failed', { error: error.message });
     }
   }, {
     scheduled: process.env.NODE_ENV !== 'test',
