@@ -274,6 +274,114 @@ describe('HoldingImportService', () => {
     });
   });
 
+  // ── V2-07（2026-09-19）：CSV 行校验收紧 ──
+  describe('V2-07 行校验收紧', () => {
+    const HEADERS = ['symbol', 'quantity', 'cost_price', 'purchase_date'];
+
+    afterEach(async () => {
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const taskRepo = AppDataSource.getRepository(HoldingImportTask);
+      const rowRepo = AppDataSource.getRepository(HoldingImportRow);
+      const tasks = await taskRepo.find({ where: { portfolio_id: portfolioId } });
+      for (const t of tasks) {
+        await rowRepo.delete({ task_id: t.task_id });
+        await holdingRepo.delete({ metadata: { import_task_id: t.task_id } } as any);
+        await taskRepo.delete({ task_id: t.task_id });
+      }
+      (global as any).__TEST_ROWS__ = undefined;
+      (global as any).__TEST_HEADERS__ = undefined;
+    });
+
+    it('V2-07-1: 2024-13-45（13月）应行级拒绝：不是有效日历日期', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', 100, 1680, '2024-13-45']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('bad-month.xlsx'));
+
+      expect(result.status).toBe('failed');
+      expect(result.imported_count).toBe(0);
+      expect(result.errors![0]).toMatchObject({ field: 'purchase_date', reason: '持仓日期不是有效日历日期' });
+    });
+
+    it('V2-07-2: 2024-02-29（闰日）合法导入不受影响', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', 100, 1680, '2024-02-29']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('leap-day.xlsx'));
+
+      expect(result.status).toBe('completed');
+      expect(result.imported_count).toBe(1);
+    });
+
+    it('V2-07-3: 未来日期应行级拒绝', async () => {
+      const future = new Date();
+      future.setFullYear(future.getFullYear() + 1);
+      const futureStr = `${future.getFullYear()}-06-01`;
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', 100, 1680, futureStr]];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('future-date.xlsx'));
+
+      expect(result.status).toBe('failed');
+      expect(result.errors![0]).toMatchObject({ field: 'purchase_date', reason: '持仓日期不能晚于今天' });
+    });
+
+    it('V2-07-4: 字母代码 ABC123 应行级拒绝', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['ABC123', 100, 1680, '2026-01-15']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('bad-symbol.xlsx'));
+
+      expect(result.status).toBe('failed');
+      expect(result.errors![0]).toMatchObject({ field: 'symbol', reason: '股票代码格式不正确（须为 6 位数字）' });
+    });
+  });
+
+  // ── V2-08（2026-09-19）：任务详情 errors 结构修复 ──
+  describe('V2-08 getTaskById errors 结构', () => {
+    const HEADERS = ['symbol', 'quantity', 'cost_price', 'purchase_date'];
+
+    afterEach(async () => {
+      const holdingRepo = AppDataSource.getRepository(Holding);
+      const taskRepo = AppDataSource.getRepository(HoldingImportTask);
+      const rowRepo = AppDataSource.getRepository(HoldingImportRow);
+      const tasks = await taskRepo.find({ where: { portfolio_id: portfolioId } });
+      for (const t of tasks) {
+        await rowRepo.delete({ task_id: t.task_id });
+        await holdingRepo.delete({ metadata: { import_task_id: t.task_id } } as any);
+        await taskRepo.delete({ task_id: t.task_id });
+      }
+      (global as any).__TEST_ROWS__ = undefined;
+      (global as any).__TEST_HEADERS__ = undefined;
+    });
+
+    it('V2-08-1: 单行错误返回数组结构 [{row, field, value, reason}]（不再出现 {"0":...} 展开）', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', -1, 1680, '2026-01-15']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('one-err.xlsx'));
+      const detail = await HoldingImportService.getTaskById(result.task_id, userId);
+
+      expect(Array.isArray(detail.errors)).toBe(true);
+      expect(detail.errors).toHaveLength(1);
+      expect(detail.errors[0]).toMatchObject({ row: 2, field: 'quantity' });
+      expect(detail.errors[0]).toHaveProperty('reason');
+      expect(detail.errors[0]).not.toHaveProperty('0');
+    });
+
+    it('V2-08-2: 一行多错误应展开为独立多条（与导入响应 errors 同构）', async () => {
+      (global as any).__TEST_HEADERS__ = HEADERS;
+      (global as any).__TEST_ROWS__ = [['600519', -1, -5, '2024-13-45']];
+
+      const result = await HoldingImportService.importFromFile(portfolioId, userId, makeFile('multi-err.xlsx'));
+      const detail = await HoldingImportService.getTaskById(result.task_id, userId);
+
+      expect(detail.errors).toHaveLength(3);
+      expect(detail.errors.map(e => e.field).sort()).toEqual(['cost_price', 'purchase_date', 'quantity']);
+      expect(detail.errors.every(e => e.row === 2)).toBe(true);
+    });
+  });
+
   // ── F-01（2026-09-18）：purchase_date 列持久化 ──
   describe('F-01 purchase_date 列', () => {
     afterEach(async () => {

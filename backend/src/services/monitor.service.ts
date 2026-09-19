@@ -17,6 +17,9 @@ import { StopLossService } from './stopLoss.service';
 import { RiskEventService } from './riskEvent.service';
 import { MarketVolatilityService } from './marketVolatility.service';
 import { MarketDataService } from './marketData.service';
+import { PortfolioService } from './portfolio.service';
+import { MarketData } from '../models/MarketData';
+import { Holding } from '../models/Holding';
 import WebSocketService from './websocket.service';
 import logger from '../utils/logger';
 
@@ -26,6 +29,35 @@ const varRepo = () => AppDataSource.getRepository(VaRCalculation);
 const cacheRepo = () => AppDataSource.getRepository(PortfolioSummaryCache);
 const stopLossRepo = () => AppDataSource.getRepository(StopLossSuggestion);
 const impactRepo = () => AppDataSource.getRepository(RiskEventImpact);
+const marketDataRepo = () => AppDataSource.getRepository(MarketData);
+const holdingRepo = () => AppDataSource.getRepository(Holding);
+
+// DEF-V131-003 / V2-02：监控类型支持矩阵（单一事实源）
+// 阈值型监控指标（getMetricValue 有实现）
+const SUPPORTED_METRIC_TYPES = new Set([
+  'var', 'var_threshold', 'var_percentage',
+  'cvar', 'expected_shortfall', 'es',
+  'volatility', 'vol',
+  'max_drawdown', 'drawdown', 'mdd',
+  // V2-02：流动性 / 集中度
+  'liquidity',
+  'concentration', 'hhi',
+]);
+// 专用型监控（走 checkSpecializedMonitor，不走指标阈值）
+const SPECIALIZED_MONITOR_TYPES = new Set(['stop_loss', 'risk_event', 'volatility_spike']);
+
+export function isSupportedMonitorType(t: string): boolean {
+  const n = (t || '').toLowerCase().trim();
+  return SUPPORTED_METRIC_TYPES.has(n) || SPECIALIZED_MONITOR_TYPES.has(n);
+}
+
+/** 不支持类型的统一报错文案（DEF-V131-003） */
+function unsupportedMonitorTypeError(type: string): Error {
+  return Object.assign(
+    new Error(`UNSUPPORTED_METRIC_TYPE: 不支持的风险监控类型 "${type}"。当前支持：VaR / CVaR / 波动率 / 最大回撤 / 流动性 / 持仓集中度 / 止损 / 风险事件 / 波动率异常。`),
+    { statusCode: 400 }
+  );
+}
 
 export class MonitorService {
   static async getMonitors(userId: string, portfolioId?: string) {
@@ -59,6 +91,11 @@ export class MonitorService {
   }
 
   static async create(userId: string, data: any) {
+    // DEF-V131-003：不支持的风险监控类型在创建入口直接拦截（400），不产生监控任务
+    if (!isSupportedMonitorType(data.monitor_type)) {
+      throw unsupportedMonitorTypeError(data.monitor_type);
+    }
+
     // 处理 notification_channels / notification_methods 参数映射到 notification.channels
     let notification = data.notification || { enabled: true, channels: ['app'] };
     const channelsFromFrontend = data.notification_channels || data.notification_methods;
@@ -111,6 +148,11 @@ export class MonitorService {
   static async update(id: string, userId: string, data: any) {
     const monitor = await monitorRepo().findOne({ where: { config_id: id, user_id: userId, status: 'active' } });
     if (!monitor) throw new Error('Monitor not found');
+
+    // DEF-V131-003：修改 monitor_type 时同样校验支持矩阵
+    if (data.monitor_type !== undefined && !isSupportedMonitorType(data.monitor_type)) {
+      throw unsupportedMonitorTypeError(data.monitor_type);
+    }
 
     // 归一化前端字段名到后端实体字段名
     if (data.monitor_name !== undefined) {
@@ -423,19 +465,73 @@ export class MonitorService {
           }
           return null;
         }
+        // V2-02：组合流动性（变现天数估计，越小越好）
+        case 'liquidity':
+          return await this.getPortfolioLiquidityDays(portfolioId);
+
+        // V2-02：持仓集中度（HHI，与 structure 端点同口径）
+        case 'concentration':
+        case 'hhi': {
+          const holdings = await holdingRepo().find({ where: { portfolio_id: portfolioId } });
+          if (holdings.length === 0) return null;
+          return PortfolioService.calculateHHI(holdings);
+        }
         default: {
-          // 未知指标类型：回退到 VaR（向后兼容，兼容测试 mock）
-          logger.warn(`Unknown metric type "${metricType}", falling back to VaR`);
-          const latest = await VaRService.getLatest(portfolioId);
-          return latest?.var_percentage !== null && latest?.var_percentage !== undefined
-            ? Number(latest.var_percentage)
-            : null;
+          // DEF-V131-003：未知指标不再静默回退 VaR（避免错误配置无感知）；防御存量脏数据
+          logger.warn(`Unsupported metric type "${metricType}" for portfolio ${portfolioId}, returning null`);
+          return null;
         }
       }
     } catch (e: any) {
       logger.error(`Failed to get metric value for ${metricType}: ${e.message}`);
       return null;
     }
+  }
+
+  /**
+   * V2-02：组合流动性指标 —— 组合变现天数（持仓按市值全部卖出所需自然日估计，越小流动性越好）
+   * 每只持仓：days_i = 持仓市值 / 近20交易日日均成交额（turnover），下限截断 0.01 天防除零；
+   * 缺失行情或 turnover 为 0 → 该票按 fallback 10 天计（保守），记 warn；
+   * 组合变现天数 = Σ(市值权重 × days_i)。无持仓/总市值 0 → null（skip 评估，同既有语义）。
+   */
+  private static async getPortfolioLiquidityDays(portfolioId: string): Promise<number | null> {
+    const holdings = await holdingRepo().find({ where: { portfolio_id: portfolioId } });
+    if (holdings.length === 0) return null;
+
+    const totalValue = holdings.reduce((sum, h) => sum + Number(h.market_value?.toString() || 0), 0);
+    if (totalValue <= 0) return null;
+
+    const FALLBACK_DAYS = 10;
+    const MIN_DAYS = 0.01;
+    let weightedDays = 0;
+
+    for (const h of holdings) {
+      const mv = Number(h.market_value?.toString() || 0);
+      const weight = mv / totalValue;
+
+      // 近 20 个交易日日均成交额
+      const rows = await marketDataRepo()
+        .createQueryBuilder('m')
+        .select('AVG(m.turnover)', 'avg_turnover')
+        .where('m.symbol = :symbol', { symbol: h.symbol })
+        .andWhere('m.turnover IS NOT NULL')
+        .andWhere('m.turnover > 0')
+        .orderBy('m.trade_date', 'DESC')
+        .limit(20)
+        .getRawOne();
+      const avgTurnover = rows?.avg_turnover ? Number(rows.avg_turnover) : 0;
+
+      let days: number;
+      if (avgTurnover <= 0) {
+        days = FALLBACK_DAYS;
+        logger.warn(`Liquidity metric: no turnover data for ${h.symbol}, fallback ${FALLBACK_DAYS} days`, { portfolioId });
+      } else {
+        days = Math.max(mv / avgTurnover, MIN_DAYS);
+      }
+      weightedDays += weight * days;
+    }
+
+    return parseFloat(weightedDays.toFixed(4));
   }
 
   /**

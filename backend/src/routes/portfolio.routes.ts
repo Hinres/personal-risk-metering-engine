@@ -17,6 +17,7 @@ import { importHoldings } from '../controllers/holdingImport.controller';
 import { createPortfolioFromTemplate } from '../controllers/portfolioTemplate.controller';
 import { getPortfolioOptimization } from '../controllers/portfolioOptimization.controller';
 import { getHoldings, addHolding, updateHolding, deleteHolding } from '../controllers/holding.controller';
+import { getHedgingAdvice } from '../controllers/hedging.controller';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { riskAcknowledgmentMiddleware, optimizationConsentMiddleware } from '../middleware/riskAcknowledgment.middleware';
 
@@ -84,5 +85,8 @@ router.get('/:portfolioId/holdings', authMiddleware, riskAcknowledgmentMiddlewar
 router.post('/:portfolioId/holdings', authMiddleware, riskAcknowledgmentMiddleware, addHolding);
 router.put('/:portfolioId/holdings/:id', authMiddleware, riskAcknowledgmentMiddleware, updateHolding);
 router.delete('/:portfolioId/holdings/:id', authMiddleware, riskAcknowledgmentMiddleware, deleteHolding);
+
+// V2-06：风险对冲建议（RM-003 方案 A）
+router.post('/:id/hedging-advice', authMiddleware, riskAcknowledgmentMiddleware, getHedgingAdvice);
 
 export default router;

@@ -260,10 +260,9 @@ export class HoldingImportService {
       triggered_stress: task.triggered_stress,
       created_at: task.created_at,
       completed_at: task.completed_at,
-      errors: errorRows.map(r => ({
-        row: r.row_number,
-        ...JSON.parse(r.error_fields || '[]'),
-      })),
+      errors: errorRows.flatMap(r =>
+        (JSON.parse(r.error_fields || '[]') as any[]).map(e => ({ row: r.row_number, ...e }))
+      ),
     };
   }
 
@@ -313,10 +312,18 @@ export class HoldingImportService {
     const purchaseDate = this.parsePurchaseDate(raw.purchase_date);
 
     if (!symbol) errors.push({ field: 'symbol', value: '', reason: '股票代码不能为空' });
+    // V2-07：清洗后必须匹配 6 位数字（带字母/超长代码行级拒绝）
+    else if (!/^\d{6}$/.test(symbol)) errors.push({ field: 'symbol', value: symbol, reason: '股票代码格式不正确（须为 6 位数字）' });
     if (quantity === null || quantity <= 0) errors.push({ field: 'quantity', value: String(raw.quantity || ''), reason: '持仓数量必须大于0' });
     if (costPrice === null || costPrice <= 0) errors.push({ field: 'cost_price', value: String(raw.cost_price || ''), reason: '成本价必须大于0' });
     if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
       errors.push({ field: 'purchase_date', value: String(purchaseDate), reason: '持仓日期格式必须为 YYYY-MM-DD' });
+    } else if (purchaseDate && !this.isValidCalendarDate(purchaseDate)) {
+      // V2-07：真实日历校验（拒绝 2024-13-45、2023-02-29 等）
+      errors.push({ field: 'purchase_date', value: String(purchaseDate), reason: '持仓日期不是有效日历日期' });
+    } else if (purchaseDate && purchaseDate > this.todayString()) {
+      // V2-07：未来日期拒入
+      errors.push({ field: 'purchase_date', value: String(purchaseDate), reason: '持仓日期不能晚于今天' });
     }
 
     return {
@@ -375,6 +382,26 @@ export class HoldingImportService {
     if (value === null || value === undefined || value === '') return null;
     const num = Number(String(value).replace(/,/g, ''));
     return Number.isFinite(num) ? num : null;
+  }
+
+  /** V2-07：真实日历校验（new Date 回环比对，拒绝 2024-13-45 / 2023-02-29） */
+  private static isValidCalendarDate(s: string): boolean {
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return false;
+    const y = Number(m[1]);
+    const mo = Number(m[2]);
+    const d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+  }
+
+  /** V2-07：本地时区当日 YYYY-MM-DD（未来日期比较用） */
+  private static todayString(): string {
+    const now = new Date();
+    const y = now.getFullYear();
+    const mo = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${mo}-${d}`;
   }
 
   private static inferExchange(symbol: string): string {

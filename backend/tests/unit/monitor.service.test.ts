@@ -8,14 +8,17 @@
 
 jest.mock('../../src/config/database', () => {
   const sharedQb = {
+    select: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
     andWhere: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
     skip: jest.fn().mockReturnThis(),
     take: jest.fn().mockReturnThis(),
     getManyAndCount: jest.fn().mockResolvedValue([[], 0]),
     getMany: jest.fn().mockResolvedValue([]),
     getOne: jest.fn().mockResolvedValue(null),
+    getRawOne: jest.fn().mockResolvedValue(null),
     delete: jest.fn().mockReturnThis(),
     execute: jest.fn().mockResolvedValue(undefined),
   };
@@ -68,6 +71,7 @@ import { AppDataSource } from '../../src/config/database';
 import { MonitorService } from '../../src/services/monitor.service';
 import { VaRService } from '../../src/services/var.service';
 import { NotificationService } from '../../src/services/notification.service';
+import logger from '../../src/utils/logger';
 
 describe('MonitorService', () => {
   let repo: any;
@@ -312,9 +316,11 @@ describe('MonitorService', () => {
       expect(result).toBe(0.1);
     });
 
-    it('should fallback to var for unknown metric', async () => {
+    // DEF-V131-003（2026-09-19）：未知指标不再静默回退 VaR，改为 warn + null（防错误配置无感知）
+    it('should return null for unknown metric (no silent VaR fallback)', async () => {
       const result = await (MonitorService as any).getMetricValue('p1', 'unknown');
-      expect(result).toBe(0.05);
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalled();
     });
   });
 
@@ -369,6 +375,103 @@ describe('MonitorService', () => {
       const result = await MonitorService.getAlertLatencyMetrics();
       expect(result.alert_count).toBe(2);
       expect(result.avg_latency_ms).toBe(1500);
+    });
+  });
+
+  // DEF-V131-003 / V2-02（2026-09-19）：支持矩阵校验 + liquidity/concentration 指标
+  describe('监控类型支持矩阵（DEF-V131-003 / V2-02）', () => {
+    it('创建不支持的监控类型应抛 400 错（不产生监控任务）', async () => {
+      await expect(
+        MonitorService.create('u1', { portfolio_id: 'p1', monitor_type: 'sharpe_ratio', config_name: 'X' })
+      ).rejects.toMatchObject({ statusCode: 400 });
+      await expect(
+        MonitorService.create('u1', { portfolio_id: 'p1', monitor_type: 'sharpe_ratio', config_name: 'X' })
+      ).rejects.toThrow('UNSUPPORTED_METRIC_TYPE');
+      expect(repo.create).not.toHaveBeenCalled();
+    });
+
+    it('创建 liquidity / concentration / hhi 应放行（V2-02）', async () => {
+      repo.create.mockReturnValue({ config_id: 'm1' });
+      repo.save.mockResolvedValue({ config_id: 'm1' });
+      for (const t of ['liquidity', 'concentration', 'hhi']) {
+        await expect(
+          MonitorService.create('u1', { portfolio_id: 'p1', monitor_type: t, config_name: 'X' })
+        ).resolves.toBeTruthy();
+      }
+    });
+
+    it('更新为不支持的类型应抛 400', async () => {
+      repo.findOne.mockResolvedValue({ config_id: 'm1', user_id: 'u1', status: 'active' });
+      await expect(
+        MonitorService.update('m1', 'u1', { monitor_type: 'foo_bar' })
+      ).rejects.toMatchObject({ statusCode: 400 });
+    });
+
+    it('更新不修改 monitor_type 时不触发校验（回归）', async () => {
+      repo.findOne.mockResolvedValue({ config_id: 'm1', user_id: 'u1', status: 'active', notification: {} });
+      repo.save.mockResolvedValue({});
+      await expect(MonitorService.update('m1', 'u1', { config_name: 'Y' })).resolves.toBeTruthy();
+    });
+  });
+
+  describe('V2-02 liquidity / concentration 指标', () => {
+    const getMetricValue = (MonitorService as any).getMetricValue.bind(MonitorService);
+    const getLiquidity = (MonitorService as any).getPortfolioLiquidityDays.bind(MonitorService);
+
+    it('liquidity：正常计算（市值权重 × 变现天数加权）', async () => {
+      repo.find.mockResolvedValue([
+        { symbol: '600519', market_value: 800000 },
+        { symbol: '000001', market_value: 200000 },
+      ]);
+      const qb = repo.createQueryBuilder();
+      // 600519 日均成交 20 万 → 4 天；000001 日均成交 10 万 → 2 天
+      qb.getRawOne
+        .mockResolvedValueOnce({ avg_turnover: 200000 })
+        .mockResolvedValueOnce({ avg_turnover: 100000 });
+      const v = await getLiquidity('p1');
+      // 0.8×4 + 0.2×2 = 3.6
+      expect(v).toBe(3.6);
+    });
+
+    it('liquidity：缺行情/turnover 为 0 时 fallback 10 天并 warn', async () => {
+      repo.find.mockResolvedValue([{ symbol: '999999', market_value: 100000 }]);
+      repo.createQueryBuilder().getRawOne.mockResolvedValue({ avg_turnover: null });
+      const v = await getLiquidity('p1');
+      expect(v).toBe(10);
+      expect(logger.warn).toHaveBeenCalled();
+    });
+
+    it('liquidity：无持仓返回 null', async () => {
+      repo.find.mockResolvedValue([]);
+      expect(await getLiquidity('p1')).toBeNull();
+    });
+
+    it('liquidity：总市值为 0 返回 null', async () => {
+      repo.find.mockResolvedValue([{ symbol: 'A', market_value: 0 }]);
+      expect(await getLiquidity('p1')).toBeNull();
+    });
+
+    it('concentration：HHI 与 structure 端点同口径（真实 calculateHHI 对账）', async () => {
+      const { PortfolioService } = require('../../src/services/portfolio.service');
+      repo.find.mockResolvedValue([
+        { symbol: 'A', market_value: 600000 },
+        { symbol: 'B', market_value: 400000 },
+      ]);
+      const expected = PortfolioService.calculateHHI([
+        { market_value: 600000 }, { market_value: 400000 },
+      ] as any);
+      expect(await getMetricValue('p1', 'concentration')).toBe(expected);
+      expect(await getMetricValue('p1', 'hhi')).toBe(expected);
+    });
+
+    it('concentration：空组合返回 null', async () => {
+      repo.find.mockResolvedValue([]);
+      expect(await getMetricValue('p1', 'concentration')).toBeNull();
+    });
+
+    it('default 分支不再静默回退 VaR（未知指标返回 null，不调 VaRService）', async () => {
+      expect(await getMetricValue('p1', 'not_a_metric')).toBeNull();
+      expect(VaRService.getLatest).not.toHaveBeenCalled();
     });
   });
 });

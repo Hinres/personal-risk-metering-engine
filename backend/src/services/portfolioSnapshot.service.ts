@@ -24,9 +24,14 @@ export class PortfolioSnapshotService {
     if (!portfolio) throw new Error('Portfolio not found');
 
     const holdings = await holdingRepo().find({ where: { portfolio_id: portfolioId } });
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrow = new Date();
+    // 本地日期口径（与下方 todayDate 本地零点写入保持一致；UTC 口径在 00:00-08:00 本地窗口会错位导致查重漏判、产生重复快照）
+    const now = new Date();
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const localDateStr = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    const today = localDateStr(now);
+    const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = localDateStr(tomorrow);
 
     // 复用组合统计
     await PortfolioService.updateStatistics(portfolioId);
@@ -71,7 +76,7 @@ export class PortfolioSnapshotService {
       .where('s.portfolio_id = :portfolioId', { portfolioId })
       .andWhere('s.snapshot_date >= :today AND s.snapshot_date < :tomorrow', {
         today,
-        tomorrow: tomorrow.toISOString().slice(0, 10),
+        tomorrow: tomorrowStr,
       })
       .getOne();
 

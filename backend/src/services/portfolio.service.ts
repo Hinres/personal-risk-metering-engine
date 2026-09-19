@@ -30,6 +30,22 @@ export interface ProjectedHolding {
 }
 
 export class PortfolioService {
+  /**
+   * V2-02（2026-09-19）：赫芬达尔指数 HHI = Σ w_i²（市值权重平方和），0~1。
+   * structure 端点与 monitor 集中度指标共用此实现，保证两处数值口径一致。
+   * 无持仓或总市值为 0 时返回 0。
+   */
+  static calculateHHI(holdings: Holding[]): number {
+    const totalValue = holdings.reduce((sum, h) => sum + parseFloat(h.market_value?.toString() || '0'), 0);
+    if (totalValue <= 0) return 0;
+    let hhi = 0;
+    holdings.forEach(h => {
+      const w = parseFloat(h.market_value?.toString() || '0') / totalValue;
+      hhi += w * w;
+    });
+    return parseFloat(hhi.toFixed(4));
+  }
+
   static async getAll(userId: string, page = 1, limit = 10) {
     const [portfolios, total] = await portfolioRepo().findAndCount({
       where: { user_id: userId },
@@ -222,13 +238,8 @@ export class PortfolioService {
     const top1Holding = totalValue > 0 ? parseFloat((top1Value / totalValue).toFixed(4)) : 0;
     const top5Holdings = totalValue > 0 ? parseFloat((top5Value / totalValue).toFixed(4)) : 0;
 
-    // Herfindahl Index (HHI)
-    let hhi = 0;
-    holdings.forEach(h => {
-      const w = totalValue > 0 ? parseFloat(h.market_value?.toString() || '0') / totalValue : 0;
-      hhi += w * w;
-    });
-    hhi = parseFloat(hhi.toFixed(4));
+    // Herfindahl Index (HHI) —— V2-02 抽取共用实现（structure 与 monitor 同口径）
+    const hhi = this.calculateHHI(holdings);
 
     // 相关性矩阵（仅对持仓 >= 2 的组合生成）
     let correlationMatrixResult: { symbols: string[]; matrix: number[][]; source?: string } | null = null;

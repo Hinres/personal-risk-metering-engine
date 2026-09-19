@@ -185,7 +185,8 @@ export const updateMonitor = async (req: any, res: Response) => {
 
     return successResponse(res, monitor, 'Monitor updated');
   } catch (error: any) {
-    return errorResponse(res, error.message, 404);
+    // DEF-V131-003：支持矩阵校验等 4xx 错误按 statusCode 返回，其余按 404
+    return errorResponse(res, error.message, error.statusCode || 404);
   }
 };
 
