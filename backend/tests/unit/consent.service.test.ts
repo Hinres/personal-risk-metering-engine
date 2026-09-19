@@ -2,6 +2,7 @@ import { AppDataSource } from '../../src/config/database';
 import { ConsentService } from '../../src/services/consent.service';
 import { User } from '../../src/models/User';
 import { UserConsent } from '../../src/models/UserConsent';
+import { AuditLog } from '../../src/models/AuditLog';
 
 describe('ConsentService', () => {
   let userId: string;
@@ -24,6 +25,8 @@ describe('ConsentService', () => {
     const userRepo = AppDataSource.getRepository(User);
     const consentRepo = AppDataSource.getRepository(UserConsent);
     await consentRepo.delete({ user_id: userId });
+    // V2-05：consent 授予/撤销现在产生 user_setting 审计埋点（audit_logs.user_id 外键），需一并清理
+    await AppDataSource.getRepository(AuditLog).delete({ user_id: userId, resource_type: 'user_setting' });
     await userRepo.delete({ user_id: userId });
   });
 

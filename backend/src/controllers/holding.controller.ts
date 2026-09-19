@@ -120,10 +120,12 @@ export const addHolding = async (req: any, res: Response) => {
     }
 
     // 自动获取当前价格（解决 HLD-005 / DEF-CONT-001：添加持仓时 price 为 null）
+    // V2-05：传入用户取数偏好上下文；降级且用户开启 data_quality_alerts 时响应附标记
     let currentPrice: number | null = null;
+    const priceCtx: { userId?: string; degraded?: boolean; alertsEnabled?: boolean } = { userId: req.user.user_id };
     try {
       const { MarketDataService } = await import('../services/marketData.service');
-      currentPrice = await MarketDataService.getLatestPrice(symbol.trim());
+      currentPrice = await MarketDataService.getLatestPrice(symbol.trim(), priceCtx);
     } catch (e: any) {
       logger.warn('Failed to fetch latest price when adding holding', { symbol, error: e.message });
     }
@@ -166,7 +168,13 @@ export const addHolding = async (req: any, res: Response) => {
       userAgent: req.get('user-agent'),
     });
 
-    return successResponse(res, HoldingService.serializeHolding(holding), 'Holding added', 201);
+    // V2-05：行情降级且用户开启质量提示时，响应附 data_quality 标记（alerts=false 保持静默）
+    const responsePayload: any = HoldingService.serializeHolding(holding);
+    if (priceCtx.degraded && priceCtx.alertsEnabled) {
+      responsePayload.data_quality = 'degraded';
+    }
+
+    return successResponse(res, responsePayload, 'Holding added', 201);
   } catch (error: any) {
     return errorResponse(res, 'Failed to add holding', 500);
   }

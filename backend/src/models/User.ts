@@ -94,6 +94,11 @@ export class User {
       defaultTimeHorizon?: number;
       defaultMethod?: string;
     };
+    // V2-05：数据设置段
+    data?: {
+      data_source?: 'auto' | 'local_only';
+      data_quality_alerts?: boolean;
+    };
     alertThresholds?: {
       varLimit?: number;
       concentrationLimit?: number;

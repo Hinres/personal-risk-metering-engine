@@ -7,6 +7,7 @@
 import { AppDataSource } from '../config/database';
 import { MarketData } from '../models/MarketData';
 import { Holding } from '../models/Holding';
+import { UserService } from './user.service';
 import axios from 'axios';
 import logger from '../utils/logger';
 
@@ -61,7 +62,29 @@ const generateMockPrices = (symbol: string, days: number): { trade_date: string;
 };
 
 export class MarketDataService {
-  static async getLatestPrice(symbol: string) {
+  /**
+   * V2-05：用户级取数策略。
+   * 有 userId 的用户触发链路读取 preferences.data：
+   * - data_source=local_only：跳过远程回落（mock 即远程替身），缓存 miss 返回 null 并记日志；
+   * - data_quality_alerts=true 且发生降级时：context.degraded=true（调用方据此附 data_quality 标记）。
+   * 定时 job 等无 userId 链路维持 auto 现状。
+   */
+  private static async resolveUserDataPrefs(userId?: string): Promise<{ localOnly: boolean; alerts: boolean }> {
+    if (!userId) return { localOnly: false, alerts: false };
+    try {
+      const prefs: any = await UserService.getPreferences(userId);
+      const data = prefs?.data || {};
+      return {
+        localOnly: data.data_source === 'local_only',
+        alerts: data.data_quality_alerts !== false, // 默认 true
+      };
+    } catch (e: any) {
+      logger.warn('Failed to resolve user data preference, fallback to auto', { userId, error: e.message });
+      return { localOnly: false, alerts: false };
+    }
+  }
+
+  static async getLatestPrice(symbol: string, context?: { userId?: string; degraded?: boolean; alertsEnabled?: boolean }) {
     const latest = await marketRepo().findOne({
       where: { symbol },
       order: { trade_date: 'DESC' },
@@ -70,16 +93,29 @@ export class MarketDataService {
       return latest.close_price;
     }
 
+    // V2-05：缓存 miss 后的降级路径
+    const prefs = await this.resolveUserDataPrefs(context?.userId);
+    if (context) context.alertsEnabled = prefs.alerts;
+
+    if (prefs.localOnly) {
+      // local_only：不发起远程请求，缓存 miss 即数据不可用
+      if (context) context.degraded = true;
+      logger.warn('local_only data_source: price unavailable from local cache', { symbol, userId: context?.userId });
+      return null;
+    }
+
     if (isMockEnabled()) {
+      if (context) context.degraded = true;
       logger.warn('Using mock latest price for symbol', { symbol });
       const mockPrices = generateMockPrices(symbol, 30);
       return mockPrices[mockPrices.length - 1]?.close_price ?? null;
     }
 
+    if (context) context.degraded = true;
     return null;
   }
 
-  static async getHistory(symbol: string, days = 30) {
+  static async getHistory(symbol: string, days = 30, context?: { userId?: string; degraded?: boolean }) {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const records = await marketRepo().createQueryBuilder()
@@ -93,7 +129,16 @@ export class MarketDataService {
       return records;
     }
 
+    // V2-05：缓存不足的降级路径
+    const prefs = await this.resolveUserDataPrefs(context?.userId);
+    if (prefs.localOnly) {
+      if (context) context.degraded = true;
+      logger.warn('local_only data_source: insufficient history from local cache', { symbol, userId: context?.userId });
+      return records;
+    }
+
     if (isMockEnabled()) {
+      if (context) context.degraded = true;
       logger.warn('Using mock historical prices for symbol', { symbol, days });
       const mockPrices = generateMockPrices(symbol, days);
       return mockPrices.map(p => marketRepo().create({
@@ -105,6 +150,7 @@ export class MarketDataService {
       }));
     }
 
+    if (context) context.degraded = true;
     return records;
   }
 
