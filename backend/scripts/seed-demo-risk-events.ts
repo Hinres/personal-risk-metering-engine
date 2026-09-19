@@ -99,7 +99,9 @@ export async function seedDemoRiskEvents(): Promise<SeedDemoResult> {
     result.inserted++;
   }
 
-  // 触发匹配管线：为每个有持仓的用户执行 matchEventsForUser（方式 1）
+  // 触发匹配管线：为每个有持仓的用户执行 matchEventsForUser（方式 1，预热）
+  // DEF-V131-002：此处仅为预热；seed 之后新注册/新导入持仓的用户无需重跑 seed，
+  // 首次调用 getUserEvents 时会自动惰性匹配补齐 impacts。
   const portfolioRepo = AppDataSource.getRepository(Portfolio);
   const userRepo = AppDataSource.getRepository(User);
   const usersWithHoldings = await portfolioRepo

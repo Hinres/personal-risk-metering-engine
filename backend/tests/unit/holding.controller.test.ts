@@ -256,6 +256,36 @@ describe('holding.controller', () => {
       expect(successResponse).toHaveBeenCalledWith(res, expect.anything(), 'Holding added', 201);
     });
 
+    // DEF-V131-001（2026-09-19）：add 响应须走 serializeHolding，purchase_date 与列表/详情口径一致（YYYY-MM-DD）
+    it('DEF-V131-001: add 响应 purchase_date 应为 YYYY-MM-DD 而非 ISO 带时间格式', async () => {
+      const req = mockReq({ symbol: 'AAPL', quantity: 100, cost_price: 150, purchase_date: '2024-06-01' }, { portfolioId: 'p1' });
+      const res = mockRes();
+      const portfolioRepo = createPortfolioRepo();
+      portfolioRepo.findOne.mockResolvedValue({ portfolio_id: 'p1' });
+      const holdingRepo = createHoldingRepo();
+      holdingRepo.findOne.mockResolvedValue(null);
+      holdingRepo.find.mockResolvedValue([]);
+      const created = {
+        holding_id: 'h1',
+        purchase_date: new Date('2024-06-01T00:00:00.000Z'),
+        metadata: { purchase_date: '2024-06-01' },
+      };
+      holdingRepo.create.mockReturnValue(created);
+      holdingRepo.save.mockResolvedValue(created);
+      (AppDataSource.getRepository as jest.Mock)
+        .mockReturnValueOnce(portfolioRepo)
+        .mockReturnValueOnce(holdingRepo)
+        .mockReturnValueOnce(holdingRepo)
+        .mockReturnValueOnce(holdingRepo)
+        .mockReturnValueOnce(holdingRepo);
+      (PortfolioService.checkHoldingLimits as jest.Mock).mockResolvedValue({ breaches: [] });
+      (PortfolioService.updateStatistics as jest.Mock).mockResolvedValue(undefined);
+      await holdingController.addHolding(req as any, res);
+      const payload = (successResponse as jest.Mock).mock.calls[0][1];
+      expect(payload.purchase_date).toBe('2024-06-01');
+      expect(String(payload.purchase_date)).not.toContain('T00:00:00');
+    });
+
     it('should reject duplicate symbol', async () => {
       const req = mockReq({ symbol: 'AAPL', quantity: 100, cost_price: 150 }, { portfolioId: 'p1' });
       const res = mockRes();
@@ -415,6 +445,28 @@ describe('holding.controller', () => {
       await holdingController.updateHolding(req as any, res);
       expect(HoldingService.update).toHaveBeenCalledWith('h1', 'u1', { quantity: 200, purchase_date: '2026-01-01', remark: 'note' }, holding);
       expect(successResponse).toHaveBeenCalledWith(res, expect.anything(), 'Holding updated');
+    });
+
+    // DEF-V131-001（2026-09-19）：update 响应须走 serializeHolding，purchase_date 与列表/详情口径一致（YYYY-MM-DD）
+    it('DEF-V131-001: update 响应 purchase_date 应为 YYYY-MM-DD 而非 ISO 带时间格式', async () => {
+      const req = mockReq({ purchase_date: '2024-06-01' }, { id: 'h1' });
+      const res = mockRes();
+      const holding = {
+        holding_id: 'h1', portfolio_id: 'p1', symbol: 'AAPL', quantity: 100, cost_price: 150, market_value: 15000,
+        purchase_date: new Date('2024-06-01T00:00:00.000Z'),
+        metadata: { purchase_date: '2024-06-01' },
+      };
+      (HoldingService.findOne as jest.Mock).mockResolvedValue(holding);
+      (HoldingService.update as jest.Mock).mockResolvedValue(holding);
+      const holdingRepo = createHoldingRepo();
+      holdingRepo.find.mockResolvedValue([]);
+      (AppDataSource.getRepository as jest.Mock).mockReturnValue(holdingRepo);
+      (PortfolioService.checkHoldingLimits as jest.Mock).mockResolvedValue({ breaches: [] });
+      (PortfolioService.updateStatistics as jest.Mock).mockResolvedValue(undefined);
+      await holdingController.updateHolding(req as any, res);
+      const payload = (successResponse as jest.Mock).mock.calls[0][1];
+      expect(payload.purchase_date).toBe('2024-06-01');
+      expect(String(payload.purchase_date)).not.toContain('T00:00:00');
     });
 
     it('should skip validation when only name/description updated', async () => {

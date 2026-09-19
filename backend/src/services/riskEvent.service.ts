@@ -21,6 +21,15 @@ export class RiskEventService {
    * 获取用户风险事件列表
    */
   static async getUserEvents(userId: string, options: { acknowledged?: boolean; level?: string; page?: number; pageSize?: number }) {
+    // DEF-V131-002 惰性匹配：用户查询前先对当前用户补跑匹配管线（幂等，已存在的 impact 不会重复创建），
+    // 使 seed 之后新注册/新导入持仓的用户无需重跑 seed 也能看到演示事件。
+    try {
+      await this.matchEventsForUser(userId);
+    } catch (e: any) {
+      // 惰性匹配失败不阻塞列表查询（记录日志兜底）
+      logger.warn('Lazy risk-event match failed, returning current impacts', { userId, error: e.message });
+    }
+
     const { acknowledged, level, page = 1, pageSize = 20 } = options;
 
     const where: any = { user_id: userId };
@@ -72,16 +81,24 @@ export class RiskEventService {
   }
 
   /**
-   * 匹配事件与用户持仓（骨架实现）
-   * 实际生产环境应对接 AKShare/Tushare 采集服务
+   * 匹配事件与用户持仓。
+   * DEF-V131-002 语义修正：
+   * - 不再按 is_processed 过滤/置位。原实现处理完即全局置 is_processed=true，
+   *   多用户场景下第一个用户（即使无匹配持仓）就会把全部事件消耗掉，
+   *   导致后续用户永远无法匹配；seed 之后的新用户同样永远看不到事件。
+   * - 幂等去重由 (event_id, user_id, holding_id) 唯一性检查保证，
+   *   事件可安全地被任意用户在任意时刻重复匹配。
+   * - is_processed 字段保留（历史迁移/采集器仍写入），当前匹配管线不再读写其语义；
+   *   生产接入真实事件源、事件量增长后，如需按处理状态过滤，应改为 per-user 处理标记或时间窗过滤。
    */
   static async matchEventsForUser(userId: string): Promise<number> {
     const portfolios = await portfolioRepo().find({ where: { user_id: userId, status: 'active' } });
+    if (portfolios.length === 0) return 0;
     let count = 0;
 
-    const unprocessed = await eventRepo().find({ where: { is_processed: false } });
+    const allEvents = await eventRepo().find();
 
-    for (const event of unprocessed) {
+    for (const event of allEvents) {
       const symbols: string[] = event.symbols ? JSON.parse(event.symbols) : [];
       const sectors: string[] = event.sectors ? JSON.parse(event.sectors) : [];
 
@@ -118,8 +135,6 @@ export class RiskEventService {
         }
       }
 
-      event.is_processed = true;
-      await eventRepo().save(event);
     }
 
     return count;

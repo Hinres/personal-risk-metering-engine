@@ -166,7 +166,7 @@ export const addHolding = async (req: any, res: Response) => {
       userAgent: req.get('user-agent'),
     });
 
-    return successResponse(res, holding, 'Holding added', 201);
+    return successResponse(res, HoldingService.serializeHolding(holding), 'Holding added', 201);
   } catch (error: any) {
     return errorResponse(res, 'Failed to add holding', 500);
   }
@@ -254,7 +254,7 @@ export const updateHolding = async (req: any, res: Response) => {
       userAgent: req.get('user-agent'),
     });
 
-    return successResponse(res, holding, 'Holding updated');
+    return successResponse(res, HoldingService.serializeHolding(holding), 'Holding updated');
   } catch (error: any) {
     return errorResponse(res, 'Failed to update holding', 500);
   }
