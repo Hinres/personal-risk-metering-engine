@@ -13,7 +13,12 @@ export const MIN_CONFIDENCE = 0.90;
 export const MAX_CONFIDENCE = 0.9999;
 export const MIN_TIME_HORIZON = 1;
 export const MAX_TIME_HORIZON = 365;
-export const VALID_MONITOR_TYPES = ['var_threshold', 'drawdown', 'concentration', 'volatility', 'liquidity', 'stop_loss', 'risk_event', 'volatility_spike'];
+// ==================== 监控类型支持矩阵（DEF-V132-001 单一事实源）====================
+// 阈值型监控指标（monitor.service getMetricValue 有实现），含规范名与历史别名
+export const MONITOR_METRIC_TYPES = ['var', 'var_threshold', 'var_percentage', 'cvar', 'expected_shortfall', 'es', 'volatility', 'vol', 'max_drawdown', 'drawdown', 'mdd', 'liquidity', 'concentration', 'hhi'];
+// 专用型监控（走 checkSpecializedMonitor，不走指标阈值）
+export const MONITOR_SPECIALIZED_TYPES = ['stop_loss', 'risk_event', 'volatility_spike'];
+export const VALID_MONITOR_TYPES = [...MONITOR_METRIC_TYPES, ...MONITOR_SPECIALIZED_TYPES];
 export const VALID_MONITOR_OPERATORS = ['>', '<', '>=', '<=', '='];
 export const VALID_SEVERITY_LEVELS = ['low', 'medium', 'high', 'critical'];
 export const VALID_MONITOR_RULE_SEVERITY_LEVELS = ['high', 'medium', 'low'];
@@ -148,9 +153,8 @@ export function validateMonitorParams(params: { portfolio_id?: any; monitor_name
   }
   const err3 = validateEnumField(normalized.monitor_type, 'monitor_type', VALID_MONITOR_TYPES);
   if (err3) errors.push(err3);
-  // v1.3 新增监控类型（止损/风险事件/波动率异常）在后端有固定触发逻辑，阈值非必填
-  const specializedTypes = ['stop_loss', 'risk_event', 'volatility_spike'];
-  const isSpecialized = specializedTypes.includes(normalized.monitor_type);
+  // 专用型监控（止损/风险事件/波动率异常）在后端有固定触发逻辑，阈值非必填
+  const isSpecialized = MONITOR_SPECIALIZED_TYPES.includes(normalized.monitor_type);
   const err4 = validateNumberField(normalized.threshold, 'threshold', { required: !isSpecialized, min: 0 });
   if (err4) errors.push(err4);
   const err5 = validateEnumField(normalized.operator, 'operator', VALID_MONITOR_OPERATORS);

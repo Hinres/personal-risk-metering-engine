@@ -296,25 +296,43 @@ describe('var.controller', () => {
   });
 
   describe('getVaRHistory', () => {
-    it('should return history without portfolio_id filter', async () => {
+    it('should return own history without portfolio_id filter', async () => {
       currentRepo.find.mockResolvedValue([{ var_id: 'v1' }]);
 
       const req = mockRequest();
       const res = mockResponse();
 
       await getVaRHistory(req, res);
-      expect(currentRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: {} }));
+      expect(currentRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { user_id: 'user-1' } }));
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it('should return history with portfolio_id filter', async () => {
+    it('should return history with portfolio_id filter for owned portfolio', async () => {
+      currentRepo.findOne.mockResolvedValue({ portfolio_id: 'p1', user_id: 'user-1' });
       currentRepo.find.mockResolvedValue([{ var_id: 'v1' }]);
 
       const req = mockRequest({ query: { portfolio_id: 'p1' } });
       const res = mockResponse();
 
       await getVaRHistory(req, res);
-      expect(currentRepo.find).toHaveBeenCalledWith(expect.objectContaining({ where: { portfolio_id: 'p1' } }));
+      expect(currentRepo.findOne).toHaveBeenCalledWith(expect.objectContaining({
+        where: { portfolio_id: 'p1', user_id: 'user-1' },
+      }));
+      expect(currentRepo.find).toHaveBeenCalledWith(expect.objectContaining({
+        where: { user_id: 'user-1', portfolio_id: 'p1' },
+      }));
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('should return 404 when portfolio belongs to another user', async () => {
+      currentRepo.findOne.mockResolvedValue(null);
+
+      const req = mockRequest({ query: { portfolio_id: 'p1' } });
+      const res = mockResponse();
+
+      await getVaRHistory(req, res);
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(currentRepo.find).not.toHaveBeenCalled();
     });
 
     it('should handle error', async () => {

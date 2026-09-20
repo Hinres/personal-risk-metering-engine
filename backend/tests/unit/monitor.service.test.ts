@@ -340,6 +340,36 @@ describe('MonitorService', () => {
     });
   });
 
+  // 观察项#1（SIT 20260920）：告警文案按 metric_type 分类型，liquidity/concentration 不按百分比放大
+  describe('buildAlertTitleAndMessage', () => {
+    const monitor: any = { config_name: '测试监控' };
+
+    it('should format liquidity in days without %', () => {
+      const r = (MonitorService as any).buildAlertTitleAndMessage(
+        monitor, { type: 'liquidity', threshold: 5, operator: '>' }, 10, 5);
+      expect(r.message).toBe('流动性（预计变现天数） 10 天 > 阈值 5 天');
+      expect(r.title).toBe('测试监控 — 流动性（预计变现天数） 触发预警');
+    });
+
+    it('should format concentration as HHI index without %', () => {
+      const r = (MonitorService as any).buildAlertTitleAndMessage(
+        monitor, { type: 'concentration', threshold: 0.3, operator: '>' }, 0.5297, 0.3);
+      expect(r.message).toBe('持仓集中度（HHI） 0.5297 > 阈值 0.3000');
+    });
+
+    it('should keep var_percentage in percent format', () => {
+      const r = (MonitorService as any).buildAlertTitleAndMessage(
+        monitor, { type: 'var_percentage', threshold: 0.3, operator: '>' }, 0.5297, 0.3);
+      expect(r.message).toBe('VaR 52.97% > 阈值 30.00%');
+    });
+
+    it('should format drawdown alias mdd in percent', () => {
+      const r = (MonitorService as any).buildAlertTitleAndMessage(
+        monitor, { type: 'mdd', threshold: 0.2, operator: '>' }, 0.35, 0.2);
+      expect(r.message).toBe('最大回撤 35.00% > 阈值 20.00%');
+    });
+  });
+
   describe('getSeverity', () => {
     it('should return critical for ratio >= 2', () => {
       expect((MonitorService as any).getSeverity(0.2, 0.1)).toBe('critical');

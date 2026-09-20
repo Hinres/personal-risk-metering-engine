@@ -22,6 +22,7 @@ import { MarketData } from '../models/MarketData';
 import { Holding } from '../models/Holding';
 import WebSocketService from './websocket.service';
 import logger from '../utils/logger';
+import { MONITOR_METRIC_TYPES, MONITOR_SPECIALIZED_TYPES } from '../utils/validators';
 
 const monitorRepo = () => AppDataSource.getRepository(MonitorConfig);
 const alertRepo = () => AppDataSource.getRepository(AlertHistory);
@@ -32,19 +33,12 @@ const impactRepo = () => AppDataSource.getRepository(RiskEventImpact);
 const marketDataRepo = () => AppDataSource.getRepository(MarketData);
 const holdingRepo = () => AppDataSource.getRepository(Holding);
 
-// DEF-V131-003 / V2-02：监控类型支持矩阵（单一事实源）
+// DEF-V131-003 / V2-02 / DEF-V132-001：监控类型支持矩阵
+// 单一事实源在 utils/validators.ts（MONITOR_METRIC_TYPES / MONITOR_SPECIALIZED_TYPES），此处仅引用
 // 阈值型监控指标（getMetricValue 有实现）
-const SUPPORTED_METRIC_TYPES = new Set([
-  'var', 'var_threshold', 'var_percentage',
-  'cvar', 'expected_shortfall', 'es',
-  'volatility', 'vol',
-  'max_drawdown', 'drawdown', 'mdd',
-  // V2-02：流动性 / 集中度
-  'liquidity',
-  'concentration', 'hhi',
-]);
+const SUPPORTED_METRIC_TYPES = new Set<string>(MONITOR_METRIC_TYPES);
 // 专用型监控（走 checkSpecializedMonitor，不走指标阈值）
-const SPECIALIZED_MONITOR_TYPES = new Set(['stop_loss', 'risk_event', 'volatility_spike']);
+const SPECIALIZED_MONITOR_TYPES = new Set<string>(MONITOR_SPECIALIZED_TYPES);
 
 export function isSupportedMonitorType(t: string): boolean {
   const n = (t || '').toLowerCase().trim();
@@ -672,9 +666,29 @@ export class MonitorService {
         };
       }
       default: {
+        // 观察项修复（SIT 20260920）：按 metric_type 出文案；
+        // liquidity 为变现天数、concentration/hhi 为 HHI 指数，均不按百分比放大
+        const t = (metric.type || '').toLowerCase().trim();
+        let label = metric.type;
+        let fmt: (v: number) => string = (v) => `${(v * 100).toFixed(2)}%`;
+        if (t === 'var' || t === 'var_threshold' || t === 'var_percentage') {
+          label = 'VaR';
+        } else if (t === 'cvar' || t === 'expected_shortfall' || t === 'es') {
+          label = 'CVaR（预期亏损）';
+        } else if (t === 'volatility' || t === 'vol') {
+          label = '波动率';
+        } else if (t === 'max_drawdown' || t === 'drawdown' || t === 'mdd') {
+          label = '最大回撤';
+        } else if (t === 'liquidity') {
+          label = '流动性（预计变现天数）';
+          fmt = (v) => `${Math.round(v)} 天`;
+        } else if (t === 'concentration' || t === 'hhi') {
+          label = '持仓集中度（HHI）';
+          fmt = (v) => v.toFixed(4);
+        }
         return {
-          title: `${monitor.config_name} — ${metric.type} 触发预警`,
-          message: `VaR ${(value * 100).toFixed(2)}% ${metric.operator} 阈值 ${(threshold * 100).toFixed(2)}%`,
+          title: `${monitor.config_name} — ${label} 触发预警`,
+          message: `${label} ${fmt(value)} ${metric.operator} 阈值 ${fmt(threshold)}`,
         };
       }
     }

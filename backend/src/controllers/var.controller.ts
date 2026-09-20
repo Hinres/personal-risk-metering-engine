@@ -232,8 +232,18 @@ export const calculateVaR = async (req: any, res: Response) => {
 
 export const getVaRHistory = async (req: any, res: Response) => {
   try {
+    const userId = req.user?.user_id;
     const { portfolio_id } = req.query;
-    const where: any = {};
+
+    // 属主校验（SIT 20260920 观察项#2 安全修复）：指定 portfolio_id 时必须属于当前用户，否则 404
+    if (portfolio_id) {
+      const portfolio = await portfolioRepo().findOne({ where: { portfolio_id, user_id: userId } });
+      if (!portfolio) {
+        return errorResponse(res, 'Portfolio not found', 404);
+      }
+    }
+
+    const where: any = { user_id: userId };
     if (portfolio_id) where.portfolio_id = portfolio_id;
 
     const history = await varRepo().find({

@@ -331,6 +331,16 @@ describe('validateMonitorParams', () => {
     expect(result.errors).toContain(`monitor_type must be one of: ${VALID_MONITOR_TYPES.join(', ')}`);
   });
 
+  // DEF-V132-001：校验层清单与 service 层支持矩阵对齐（含别名），小程序「VaR 百分比」选项可用
+  it('should accept service-layer aliases such as var_percentage (DEF-V132-001)', () => {
+    for (const alias of ['var', 'var_percentage', 'cvar', 'es', 'vol', 'mdd', 'hhi']) {
+      const result = validateMonitorParams({
+        portfolio_id: 'p1', monitor_name: 'M', monitor_type: alias, threshold: 0.05, operator: '>=',
+      });
+      expect(result.valid).toBe(true);
+    }
+  });
+
   it('should fail for negative threshold', () => {
     const result = validateMonitorParams({
       portfolio_id: 'p1', monitor_name: 'M', monitor_type: 'var_threshold', threshold: -1, operator: '>=',
