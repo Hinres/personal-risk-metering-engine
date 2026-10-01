@@ -1,7 +1,7 @@
 /**
  * [PRME-INFRA-003] database.ts 单元测试
  * 测试范围: initializeDatabase, closeDatabase 分支
- * 最后更新: 2026-07-08
+ * 最后更新: 2026-09-29（移除 DB_TYPE / dbTypes mock，SQLite 单库）
  */
 
 // 在模块加载前设置环境变量
@@ -9,16 +9,7 @@ const originalEnv = { ...process.env };
 
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
-  process.env.DB_TYPE = 'sqlite';
   delete process.env.SQLITE_DB_PATH;
-  delete process.env.DB_HOST;
-  delete process.env.DB_PORT;
-  delete process.env.DB_USER;
-  delete process.env.DB_PASSWORD;
-  delete process.env.DB_NAME;
-  delete process.env.DB_SCHEMA;
-  delete process.env.DB_POOL_MAX;
-  delete process.env.DB_POOL_MIN;
 });
 
 afterAll(() => {
@@ -55,15 +46,6 @@ jest.mock('../../src/utils/logger', () => ({
   debug: jest.fn(),
 }));
 
-jest.mock('../../src/utils/dbTypes', () => ({
-  getDbType: jest.fn().mockReturnValue('sqlite'),
-  setDbType: jest.fn(),
-  JsonColumn: jest.fn().mockReturnValue(() => {}),
-  DateTimeColumn: jest.fn().mockReturnValue(() => {}),
-  getJsonType: jest.fn().mockReturnValue('simple-json'),
-  getDateTimeType: jest.fn().mockReturnValue('datetime'),
-  getJsonbIndexSql: jest.fn().mockReturnValue(''),
-}));
 
 describe('database.ts', () => {
   beforeEach(() => {
@@ -74,7 +56,6 @@ describe('database.ts', () => {
   describe('initializeDatabase', () => {
     it('should initialize sqlite database and create views', async () => {
       process.env.NODE_ENV = 'development';
-      process.env.DB_TYPE = 'sqlite';
       jest.resetModules();
 
       const { initializeDatabase, AppDataSource } = await import('../../src/config/database');
@@ -89,7 +70,6 @@ describe('database.ts', () => {
 
     it('should retry on failure and eventually succeed', async () => {
       process.env.NODE_ENV = 'test';
-      process.env.DB_TYPE = 'sqlite';
       jest.resetModules();
 
       const { initializeDatabase, AppDataSource } = await import('../../src/config/database');
@@ -106,7 +86,6 @@ describe('database.ts', () => {
 
     it('should throw after max retries', async () => {
       process.env.NODE_ENV = 'test';
-      process.env.DB_TYPE = 'sqlite';
       jest.resetModules();
 
       const { initializeDatabase, AppDataSource } = await import('../../src/config/database');
@@ -121,7 +100,6 @@ describe('database.ts', () => {
   describe('closeDatabase', () => {
     it('should destroy when initialized', async () => {
       process.env.NODE_ENV = 'test';
-      process.env.DB_TYPE = 'sqlite';
       jest.resetModules();
 
       const { closeDatabase, AppDataSource } = await import('../../src/config/database');
@@ -133,7 +111,6 @@ describe('database.ts', () => {
 
     it('should do nothing when not initialized', async () => {
       process.env.NODE_ENV = 'test';
-      process.env.DB_TYPE = 'sqlite';
       jest.resetModules();
 
       const { closeDatabase, AppDataSource } = await import('../../src/config/database');

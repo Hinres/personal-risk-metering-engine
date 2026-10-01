@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 
 @Entity('anonymization_logs')
 export class AnonymizationLog {
@@ -27,10 +26,10 @@ export class AnonymizationLog {
   @Column({ type: 'text', nullable: true })
   error_message!: string | null;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   started_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   completed_at!: Date | null;
 
   @CreateDateColumn({ type: 'datetime' })

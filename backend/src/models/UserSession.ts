@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index
 } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 
 @Entity('user_sessions')
@@ -26,18 +25,18 @@ export class UserSession {
   @Column({ type: 'varchar', length: 255, nullable: true })
   refresh_token!: string | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   device_info!: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status!: string;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   expires_at!: Date;
 
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 
-  @DateTimeColumn({ default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   last_active_at!: Date;
 }

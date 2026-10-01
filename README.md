@@ -42,7 +42,7 @@ See [FEATURES.md](./FEATURES.md) for the full feature description.
 | Subsystem | Technologies |
 |---|---|
 | Backend API | Node.js 18+ · Express · TypeScript · TypeORM |
-| Database | SQLite (dev/test default) · PostgreSQL (production option) |
+| Database | SQLite 3.39+ (single database, WAL mode — PostgreSQL support removed per REQ-DEC-20260926-001) |
 | Cache | In-memory L1 + SQLite L2 cache tables (Redis removed) |
 | Calculation Engine | Python 3.11+ · NumPy · SciPy · Pandas · embedded / standalone dual mode |
 | Web Admin | React 18 · TypeScript · Vite · Ant Design · Zustand |
@@ -66,7 +66,7 @@ personal-risk-metering-engine/
 │   ├── web-admin/           # Web admin console (React + Vite)
 │   └── wechat-miniprogram/  # WeChat mini-program frontend
 ├── database/                # Database init / migration scripts
-├── docker-compose.yml       # Production Docker orchestration (PostgreSQL mode)
+├── docker-compose.yml       # Production Docker orchestration (SQLite single-DB mode)
 ├── .env.example             # Environment variable template
 ├── FEATURES.md              # Full feature description
 └── README.md                # This file
@@ -117,7 +117,6 @@ Copy `.env.example` to `.env` at the repo root and adjust per environment. Key v
 |---|---|---|
 | `NODE_ENV` | Runtime environment | `development` / `production` |
 | `PORT` | Backend port | `3000` |
-| `DB_TYPE` | Database type | `sqlite` / `postgres` |
 | `SQLITE_DB_PATH` | SQLite file path | `./data/database.sqlite` |
 | `JWT_SECRET` | JWT signing secret | **Must be changed in production** |
 | `WECHAT_APPID` / `WECHAT_APPSECRET` | WeChat mini-program credentials | From WeChat Official Platform |
@@ -131,7 +130,7 @@ Copy `.env.example` to `.env` at the repo root and adjust per environment. Key v
 ```bash
 # Backend tests
 cd backend
-npm run test                # 119 suites / 1660 cases
+npm run test                # 118 suites / 1646 cases
 
 # Calculation engine tests
 cd ../calculation-engine
@@ -146,11 +145,11 @@ cd personal-risk-metering-engine
 docker-compose up -d
 ```
 
-Production defaults to PostgreSQL + standalone calculation engine. Development can use SQLite + embedded engine directly.
+Production runs the SQLite single database (WAL mode, persisted via the `sqlite_data` volume) with the standalone calculation engine. Development can use the embedded engine directly — no extra services required.
 
 ### Quality & Verification
 
-- **Tests**: 119 Jest suites / 1660 cases passing; key numeric results (Kupiec backtest, HHI concentration) independently reconciled digit-by-digit by QA
+- **Tests**: 118 Jest suites / 1646 cases passing; key numeric results (Kupiec backtest, HHI concentration) independently reconciled digit-by-digit by QA
 - **Migrations**: TypeORM migrations 001–009, validated for both fresh databases and in-place upgrades
 - **Security baseline**: owner checks on all resources (404 on cross-user access), single-source validation matrices, XSS output escaping, parameterized SQL
 - **SIT / UAT**: v1.3.2 passed QA system integration testing (8/8 features + numeric reconciliation) and Req user acceptance testing (48/48 items, zero new defects)
@@ -214,7 +213,7 @@ PRME（Personal Risk Metering Engine）是一套为个人投资者设计的**风
 | 子系统 | 技术 |
 |--------|------|
 | 后端 API | Node.js 18+ · Express · TypeScript · TypeORM |
-| 数据库 | SQLite（开发/测试默认）· PostgreSQL（生产可选） |
+| 数据库 | SQLite 3.39+ 单库（WAL 模式，按 REQ-DEC-20260926-001 已移除 PostgreSQL 双模式） |
 | 缓存 | 内存 L1 缓存 + SQLite L2 缓存表（Redis 已移除） |
 | 计算引擎 | Python 3.11+ · NumPy · SciPy · Pandas · 内嵌/独立双模式 |
 | Web 后台 | React 18 · TypeScript · Vite · Ant Design · Zustand |
@@ -238,7 +237,7 @@ personal-risk-metering-engine/
 │   ├── web-admin/           # Web 管理后台（React + Vite）
 │   └── wechat-miniprogram/  # 微信小程序前端
 ├── database/                # 数据库初始化/迁移脚本
-├── docker-compose.yml       # 生产 Docker 编排（PostgreSQL 模式）
+├── docker-compose.yml       # 生产 Docker 编排（SQLite 单库模式）
 ├── .env.example             # 环境变量模板
 ├── FEATURES.md              # 完整功能特性说明
 └── README.md                # 本文件
@@ -289,7 +288,6 @@ npm run dev                 # 默认 http://localhost:5173
 |------|------|------|
 | `NODE_ENV` | 运行环境 | `development` / `production` |
 | `PORT` | 后端端口 | `3000` |
-| `DB_TYPE` | 数据库类型 | `sqlite` / `postgres` |
 | `SQLITE_DB_PATH` | SQLite 文件路径 | `./data/database.sqlite` |
 | `JWT_SECRET` | JWT 签名密钥 | **生产环境必须修改** |
 | `WECHAT_APPID` / `WECHAT_APPSECRET` | 微信小程序凭证 | 从微信公众平台获取 |
@@ -303,7 +301,7 @@ npm run dev                 # 默认 http://localhost:5173
 ```bash
 # 后端测试
 cd backend
-npm run test                # 119 套件 / 1660 用例
+npm run test                # 118 套件 / 1646 用例
 
 # 计算引擎测试
 cd ../calculation-engine
@@ -318,11 +316,11 @@ cd personal-risk-metering-engine
 docker-compose up -d
 ```
 
-生产默认使用 PostgreSQL + 独立计算引擎。开发环境可直接使用 SQLite + 内嵌计算引擎。
+生产部署使用 SQLite 单库（WAL 模式，数据库文件通过 `sqlite_data` 卷持久化）+ 独立计算引擎。开发环境可直接使用内嵌计算引擎，无需额外服务。
 
 ### 质量与验证
 
-- **测试**：119 个 Jest 套件 / 1660 个用例全量通过；关键数值（Kupiec 回测、HHI 集中度）经 QA 独立手工复算逐位对账
+- **测试**：118 个 Jest 套件 / 1646 个用例全量通过；关键数值（Kupiec 回测、HHI 集中度）经 QA 独立手工复算逐位对账
 - **数据库迁移**：TypeORM 迁移 001–009 全量管理，全新建库与存量升级路径均验证
 - **安全基线**：全接口属主校验（越权 404）、校验矩阵单一事实源、XSS 输出转义、SQL 参数化
 - **SIT / UAT**：v1.3.2 经 QA 系统集成测试（功能 8/8 + 数值对账）与 Req 用户验收测试（专项 48/48、0 新增缺陷）双重复核通过
@@ -349,4 +347,4 @@ docker-compose up -d
 
 ---
 
-*Last updated: 2026-09-20 · v1.3.2 (SIT/UAT passed)*
+*Last updated: 2026-10-01 · v1.3.2 (SQLite single-DB rollback applied, all tests green)*

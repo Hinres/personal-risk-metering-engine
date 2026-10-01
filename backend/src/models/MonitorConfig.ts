@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 import { Portfolio } from './Portfolio';
 
@@ -64,7 +63,7 @@ export class MonitorConfig {
   @UpdateDateColumn({ type: 'datetime' })
   updated_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   last_triggered!: Date | null;
 
   @Column({ type: 'integer', default: 0 })

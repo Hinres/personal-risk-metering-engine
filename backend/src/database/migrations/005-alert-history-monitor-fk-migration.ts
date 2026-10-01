@@ -4,10 +4,10 @@
  * 问题: alert_history.rule_id 外键错误地指向 alert_rules，但业务代码写入的是
  *       monitor_configs.config_id，导致每次触发监控告警时都报 SQLITE_CONSTRAINT。
  * 修复: 删除指向 alert_rules 的旧外键约束，新建指向 monitor_configs(config_id) 的约束。
+ * 修订(2026-09-29): 移除 PostgreSQL 分支，SQLite 单库（REQ-DEC-20260926-001）
  */
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 export class AlertHistoryMonitorFkMigration1718000000005 implements MigrationInterface {
@@ -15,16 +15,11 @@ export class AlertHistoryMonitorFkMigration1718000000005 implements MigrationInt
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.connect();
-    const dbType = getDbType();
 
     try {
       logger.info('[005] Starting alert_history FK fix migration...');
 
-      if (dbType === 'postgres') {
-        await this.migratePostgres(queryRunner);
-      } else {
-        await this.migrateSQLite(queryRunner);
-      }
+      await this.migrateSQLite(queryRunner);
 
       logger.info('[005] alert_history FK fix migration completed.');
     } catch (error: any) {
@@ -35,43 +30,6 @@ export class AlertHistoryMonitorFkMigration1718000000005 implements MigrationInt
 
   async down(queryRunner: QueryRunner): Promise<void> {
     logger.warn('[005] down() is a no-op: reverting FK change manually is risky');
-  }
-
-  private async migratePostgres(queryRunner: QueryRunner): Promise<void> {
-    // 如果已经修复，直接跳过
-    const alreadyFixed = await queryRunner.query(`
-      SELECT 1 FROM pg_constraint
-      WHERE conrelid = 'alert_history'::regclass
-        AND contype = 'f'
-        AND confrelid = 'monitor_configs'::regclass
-    `);
-    if (Array.isArray(alreadyFixed) && alreadyFixed.length > 0) {
-      logger.info('[005] Postgres FK already points to monitor_configs, skipping');
-      return;
-    }
-
-    // 删除指向 alert_rules 的旧外键（如果存在）
-    const oldFks = await queryRunner.query(`
-      SELECT conname FROM pg_constraint
-      WHERE conrelid = 'alert_history'::regclass
-        AND contype = 'f'
-        AND confrelid = 'alert_rules'::regclass
-    `);
-    for (const row of oldFks || []) {
-      await queryRunner.query(`ALTER TABLE alert_history DROP CONSTRAINT IF EXISTS "${row.conname}"`);
-      logger.info(`[005] Dropped old FK "${row.conname}"`);
-    }
-
-    // 新建指向 monitor_configs 的外键
-    await queryRunner.query(`
-      ALTER TABLE alert_history
-      ADD CONSTRAINT "FK_alert_history_rule_monitor"
-      FOREIGN KEY (rule_id) REFERENCES monitor_configs(config_id)
-      ON DELETE NO ACTION ON UPDATE NO ACTION
-    `);
-    logger.info('[005] Created FK alert_history(rule_id) -> monitor_configs(config_id)');
-
-    await this.refreshMonitorStatusView(queryRunner, 'postgres');
   }
 
   private async migrateSQLite(queryRunner: QueryRunner): Promise<void> {
@@ -121,35 +79,21 @@ export class AlertHistoryMonitorFkMigration1718000000005 implements MigrationInt
       await queryRunner.query('PRAGMA foreign_keys = ON');
     }
 
-    await this.refreshMonitorStatusView(queryRunner, 'sqlite');
+    await this.refreshMonitorStatusView(queryRunner);
   }
 
-  private async refreshMonitorStatusView(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    if (dbType === 'postgres') {
-      await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
-      await queryRunner.query(`
-        CREATE OR REPLACE VIEW monitor_status AS
-        SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
-               m.monitor_type, m.status, m.threshold, m.operator,
-               COUNT(a.history_id) as active_alerts
-        FROM monitor_configs m
-        LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
-        WHERE m.status = 'active'
-        GROUP BY m.config_id
-      `);
-    } else {
-      await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
-      await queryRunner.query(`
-        CREATE VIEW IF NOT EXISTS monitor_status AS
-        SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
-               m.monitor_type, m.status, m.threshold, m.operator,
-               COUNT(a.history_id) as active_alerts
-        FROM monitor_configs m
-        LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
-        WHERE m.status = 'active'
-        GROUP BY m.config_id
-      `);
-    }
+  private async refreshMonitorStatusView(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
+    await queryRunner.query(`
+      CREATE VIEW IF NOT EXISTS monitor_status AS
+      SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
+             m.monitor_type, m.status, m.threshold, m.operator,
+             COUNT(a.history_id) as active_alerts
+      FROM monitor_configs m
+      LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
+      WHERE m.status = 'active'
+      GROUP BY m.config_id
+    `);
     logger.info('[005] Refreshed monitor_status view');
   }
 }

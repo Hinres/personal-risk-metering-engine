@@ -4,9 +4,9 @@
  * 范围: holdings 表新增 purchase_date(date, nullable) 列；从 metadata JSON 回填存量数据
  * 设计来源: PRME-v1.3.1-Detailed-Design-20260918.md §1.2
  * 日期: 2026-09-18
+ * 修订(2026-09-29): 移除 PostgreSQL 分支，SQLite 单库（REQ-DEC-20260926-001）
  */
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 /** 兼容 date 列与 metadata 中多种取值的统一日期串提取（YYYY-MM-DD 或 null） */
@@ -26,19 +26,12 @@ export class PurchaseDateMigration1718000000008 implements MigrationInterface {
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.connect();
-    const dbType = getDbType();
     logger.info('[008] Starting holdings.purchase_date migration...');
 
     const table = 'holdings';
     const columnName = 'purchase_date';
 
     const hasColumn = async (): Promise<boolean> => {
-      if (dbType === 'postgres') {
-        const rows: any[] = await queryRunner.query(
-          `SELECT 1 FROM information_schema.columns WHERE table_name = '${table}' AND column_name = '${columnName}'`
-        );
-        return rows.length > 0;
-      }
       const rows: any[] = await queryRunner.query(`PRAGMA table_info(${table})`);
       return rows.some((r: any) => r.name === columnName);
     };
@@ -57,7 +50,7 @@ export class PurchaseDateMigration1718000000008 implements MigrationInterface {
 
   /**
    * 存量回填：metadata.purchase_date（YYYY-MM-DD）→ purchase_date 列。
-   * 逐行用 TypeScript 回填，保证 sqlite/Postgres 双方言一致；幂等（仅回填 NULL 行）。
+   * 逐行用 TypeScript 回填，SQLite 单库；幂等（仅回填 NULL 行）。
    */
   async backfill(queryRunner: QueryRunner): Promise<number> {
     const rows: any[] = await queryRunner.query(

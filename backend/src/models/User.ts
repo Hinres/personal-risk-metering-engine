@@ -8,7 +8,6 @@ import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
   OneToMany, ManyToOne, JoinColumn, Index, DeleteDateColumn
 } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 import { MonitorConfig } from './MonitorConfig';
 import { AlertHistory } from './AlertHistory';
@@ -60,7 +59,7 @@ export class User {
   @Column({ type: 'boolean', default: false })
   first_risk_acknowledged!: boolean;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   first_risk_acknowledged_at!: Date | null;
 
   @CreateDateColumn({ type: 'datetime' })
@@ -69,7 +68,7 @@ export class User {
   @UpdateDateColumn({ type: 'datetime' })
   updated_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   last_login!: Date | null;
 
   @Column({ type: 'int', default: 0 })
@@ -114,7 +113,7 @@ export class User {
     features?: string[];
   };
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   wechat_info!: Record<string, any> | null;
 
   @Column({ type: 'simple-json', default: '{}' })

@@ -1,12 +1,11 @@
 /**
  * [PRME-INFRA-006] 基础设施
  * 文件: 002-naming-alignment-migration.ts
- * 需求描述: P1-1 数据模型命名统一迁移脚本（SQLite / PostgreSQL）
- * 最后更新: 2026-07-29
+ * 需求描述: P1-1 数据模型命名统一迁移脚本（SQLite 单库，REQ-DEC-20260926-001）
+ * 最后更新: 2026-09-29
  */
 
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 /**
@@ -59,23 +58,13 @@ export async function runNamingAlignmentMigration(queryRunner: QueryRunner) {
 }
 
 /**
- * 检查表是否存在（兼容 SQLite / PostgreSQL）
+ * 检查表是否存在（SQLite）
  */
 async function tableExists(queryRunner: QueryRunner, tableName: string): Promise<boolean> {
-  const dbType = getDbType();
-  let result: any[];
-
-  if (dbType === 'postgres') {
-    result = await queryRunner.query(
-      `SELECT 1 FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = $1`,
-      [tableName]
-    );
-  } else {
-    result = await queryRunner.query(
-      `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`,
-      [tableName]
-    );
-  }
+  const result = await queryRunner.query(
+    `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?`,
+    [tableName]
+  );
 
   return Array.isArray(result) && result.length > 0;
 }
@@ -203,35 +192,18 @@ async function migrateRiskMonitors(queryRunner: QueryRunner) {
 async function updateViews(queryRunner: QueryRunner) {
   logger.info('Updating views...');
 
-  const dbType = getDbType();
-
-  if (dbType === 'postgres') {
-    // PostgreSQL: 使用 CREATE OR REPLACE VIEW
-    await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
-    await queryRunner.query(`
-      CREATE OR REPLACE VIEW monitor_status AS
-      SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
-             m.monitor_type, m.status, m.threshold, m.operator,
-             COUNT(a.history_id) as active_alerts
-      FROM monitor_configs m
-      LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
-      WHERE m.status = 'active'
-      GROUP BY m.config_id
-    `);
-  } else {
-    // SQLite: 不支持 CREATE OR REPLACE VIEW
-    await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
-    await queryRunner.query(`
-      CREATE VIEW IF NOT EXISTS monitor_status AS
-      SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
-             m.monitor_type, m.status, m.threshold, m.operator,
-             COUNT(a.history_id) as active_alerts
-      FROM monitor_configs m
-      LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
-      WHERE m.status = 'active'
-      GROUP BY m.config_id
-    `);
-  }
+  // SQLite: 不支持 CREATE OR REPLACE VIEW
+  await queryRunner.query(`DROP VIEW IF EXISTS monitor_status`);
+  await queryRunner.query(`
+    CREATE VIEW IF NOT EXISTS monitor_status AS
+    SELECT m.config_id as monitor_id, m.portfolio_id, m.config_name as monitor_name,
+           m.monitor_type, m.status, m.threshold, m.operator,
+           COUNT(a.history_id) as active_alerts
+    FROM monitor_configs m
+    LEFT JOIN alert_history a ON m.portfolio_id = a.portfolio_id AND a.status = 'active'
+    WHERE m.status = 'active'
+    GROUP BY m.config_id
+  `);
 
   logger.info('Views updated');
 }

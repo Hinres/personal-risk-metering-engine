@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 
 @Entity('admin_approval_requests')
@@ -33,10 +32,10 @@ export class AdminApprovalRequest {
   @Column({ type: 'uuid', nullable: true })
   resource_id!: string | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   before_value!: Record<string, any> | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   after_value!: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 20, default: 'pending' })
@@ -45,10 +44,10 @@ export class AdminApprovalRequest {
   @CreateDateColumn({ type: 'datetime' })
   requested_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   approved_at!: Date | null;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   rejected_at!: Date | null;
 
   @Column({ type: 'text', nullable: true })
@@ -57,7 +56,7 @@ export class AdminApprovalRequest {
   @Column({ type: 'text', nullable: true })
   execution_error!: string | null;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   cancelled_at!: Date | null;
 
   @CreateDateColumn({ type: 'datetime' })

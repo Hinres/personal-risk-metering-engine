@@ -4,9 +4,9 @@
  * 范围: 新增 stock_daily_basic 表（每日估值/股息率快照，供优化筛选使用）
  * 设计来源: PRME-v1.3-Optimization-Screening-Design-Supplement-20260906.md §4.1
  * 日期: 2026-09-06
+ * 修订(2026-09-29): 移除 PostgreSQL 分支，SQLite 单库（REQ-DEC-20260926-001）
  */
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 export class StockDailyBasicMigration1718000000007 implements MigrationInterface {
@@ -14,21 +14,16 @@ export class StockDailyBasicMigration1718000000007 implements MigrationInterface
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.connect();
-    const dbType = getDbType();
     logger.info('[007] Starting stock_daily_basic migration...');
 
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const dateType = dbType === 'postgres' ? 'date' : 'date';
+    const uuid = 'varchar(36)';
+    const dateType = 'date';
 
     const exists = await queryRunner.query(
       `SELECT name FROM sqlite_master WHERE type='table' AND name='stock_daily_basic'`
     ).catch(() => []);
 
-    const tableExists = dbType === 'postgres'
-      ? (await queryRunner.query(
-          `SELECT 1 FROM information_schema.tables WHERE table_name = 'stock_daily_basic'`
-        ))?.length > 0
-      : (Array.isArray(exists) && exists.length > 0);
+    const tableExists = Array.isArray(exists) && exists.length > 0;
 
     if (tableExists) {
       logger.info('[007] stock_daily_basic already exists, skipping');

@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 
 @Entity('market_data')
 export class MarketData {
@@ -63,7 +62,7 @@ export class MarketData {
   @Column({ type: 'time', nullable: true })
   trade_time!: Date | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata!: Record<string, any> | null;
 
   @CreateDateColumn({ type: 'datetime' })

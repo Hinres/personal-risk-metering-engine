@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn
 } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 
 @Entity('orders')
@@ -46,10 +45,10 @@ export class Order {
   @Column({ type: 'varchar', length: 20, default: 'pending' })
   payment_status!: string;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   paid_at!: Date | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   payment_details!: Record<string, any> | null;
 
   @Column({ type: 'date', nullable: true })
@@ -58,7 +57,7 @@ export class Order {
   @Column({ type: 'date', nullable: true })
   period_end!: Date | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   refund_info!: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })

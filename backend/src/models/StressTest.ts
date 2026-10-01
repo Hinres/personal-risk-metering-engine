@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Check
 } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 
 @Entity('stress_tests')
@@ -40,13 +39,13 @@ export class StressTest {
   @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
   loss_percentage!: number | null;
 
-  @JsonColumn({ default: '[]' })
+  @Column({ type: 'simple-json', default: '[]' })
   asset_results!: any[];
 
   @Column({ type: 'simple-json', default: '{}' })
   risk_changes!: Record<string, any>;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   test_date!: Date;
 
   @CreateDateColumn({ type: 'datetime' })

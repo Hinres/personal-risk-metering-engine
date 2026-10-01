@@ -8,7 +8,6 @@ import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn,
   ManyToOne, JoinColumn, Index
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 
 @Entity('monitor_snapshots')
@@ -36,10 +35,10 @@ export class MonitorSnapshot {
   @Column({ type: 'varchar', length: 10, nullable: true })
   operator!: string | null;           // > / < / >= / <= / =
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   holdings_risk!: Record<string, any> | null;  // 持仓风险快照
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   extra_metrics!: Record<string, any> | null;  // 额外指标
 
   @CreateDateColumn({ type: 'datetime' })

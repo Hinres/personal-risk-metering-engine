@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 import { Portfolio } from './Portfolio';
 import { MonitorConfig } from './MonitorConfig';
@@ -54,10 +53,10 @@ export class AlertHistory {
   @Column({ type: 'simple-json', default: '{}' })
   notification_status!: Record<string, any>;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   triggered_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   resolved_at!: Date | null;
 
   @Column({ type: 'varchar', length: 20, default: 'active' })

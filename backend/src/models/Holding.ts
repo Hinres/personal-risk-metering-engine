@@ -8,7 +8,6 @@ import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
   ManyToOne, JoinColumn, Index
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 
 @Entity('holdings')
@@ -80,7 +79,7 @@ export class Holding {
   @Column({ type: 'date', nullable: true })
   purchase_date!: Date | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   metadata!: Record<string, any> | null;
 
   @Column({ type: 'uuid', nullable: true })

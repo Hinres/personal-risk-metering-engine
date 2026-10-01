@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 
 @Entity('system_configs')
 export class SystemConfig {
@@ -16,7 +15,7 @@ export class SystemConfig {
   @Column({ type: 'varchar', length: 100, unique: true })
   config_key!: string;
 
-  @JsonColumn()
+  @Column({ type: 'simple-json' })
   config_value!: Record<string, any>;
 
   @Column({ type: 'varchar', length: 20, default: 'system' })

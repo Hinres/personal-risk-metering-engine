@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 
 @Entity('market_risk_alerts')
 export class MarketRiskAlert {
@@ -40,7 +39,7 @@ export class MarketRiskAlert {
   @Column({ type: 'integer', default: 0 })
   acknowledged_count!: number;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   triggered_at!: Date;
 
   @CreateDateColumn({ type: 'datetime' })

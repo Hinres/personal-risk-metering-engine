@@ -4,9 +4,9 @@
  * 范围: 新增用户反馈表（feedback/question/suggestion/rating 四类 + 管理端回复闭环）
  * 设计来源: PRME-v1.3.2-Detailed-Design-20260919.md §1.2
  * 日期: 2026-09-19
+ * 修订(2026-09-29): 移除 PostgreSQL 分支，SQLite 单库（REQ-DEC-20260926-001）
  */
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 export class UserFeedbackMigration1718000000009 implements MigrationInterface {
@@ -14,20 +14,13 @@ export class UserFeedbackMigration1718000000009 implements MigrationInterface {
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.connect();
-    const dbType = getDbType();
     logger.info('[009] Starting user_feedbacks migration...');
 
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const uuidDefault = dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()';
-    const nowDefault = dbType === 'sqlite' ? "DEFAULT (datetime('now'))" : 'DEFAULT now()';
+    const uuid = 'varchar(36)';
+    const uuidDefault = 'DEFAULT (lower(hex(randomblob(16))))';
+    const nowDefault = "DEFAULT (datetime('now'))";
 
     const hasTable = async (): Promise<boolean> => {
-      if (dbType === 'postgres') {
-        const rows: any[] = await queryRunner.query(
-          `SELECT 1 FROM information_schema.tables WHERE table_name = 'user_feedbacks'`
-        );
-        return rows.length > 0;
-      }
       const rows: any[] = await queryRunner.query(
         `SELECT name FROM sqlite_master WHERE type='table' AND name='user_feedbacks'`
       );

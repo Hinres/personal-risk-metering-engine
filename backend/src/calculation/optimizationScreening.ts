@@ -597,15 +597,8 @@ export class OptimizationScreening {
         AND CAST(strftime('%Y', trade_date) AS INTEGER) >= ?
       GROUP BY symbol, year
     `, [...symbols, startYear]).catch(async (e) => {
-      // PostgreSQL 分支
-      logger.warn('sqlite 风格股息历史查询失败，尝试 postgres 方言', { error: e.message });
-      return dailyBasicRepo().query(`
-        SELECT symbol, EXTRACT(YEAR FROM trade_date)::text AS year, MAX(trade_date) AS max_d
-        FROM stock_daily_basic
-        WHERE symbol IN (${symbols.map((_, i) => `$${i + 1}`).join(',')})
-          AND EXTRACT(YEAR FROM trade_date) >= $${symbols.length + 1}
-        GROUP BY symbol, EXTRACT(YEAR FROM trade_date)
-      `, [...symbols, startYear]);
+      logger.warn('按年份提取股息历史失败', { error: e.message });
+      return [];
     });
     const yearLatest = new Map<string, string>();
     for (const r of dvRows) {

@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn
 } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 
 @Entity('reports')
@@ -53,9 +52,9 @@ export class Report {
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   generated_at!: Date | null;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   expires_at!: Date | null;
 }

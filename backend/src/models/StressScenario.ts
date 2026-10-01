@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 
 @Entity('stress_scenarios')
 export class StressScenario {
@@ -42,6 +41,6 @@ export class StressScenario {
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   updated_at!: Date | null;
 }

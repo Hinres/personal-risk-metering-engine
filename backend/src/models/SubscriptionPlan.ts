@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 
 @Entity('subscription_plans')
 export class SubscriptionPlan {
@@ -31,7 +30,7 @@ export class SubscriptionPlan {
   @Column({ type: 'varchar', length: 10, default: 'CNY' })
   currency!: string;
 
-  @JsonColumn({ default: '[]' })
+  @Column({ type: 'simple-json', default: '[]' })
   features!: any[];
 
   @Column({ type: 'simple-json', default: '{}' })

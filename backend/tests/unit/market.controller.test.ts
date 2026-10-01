@@ -35,15 +35,6 @@ jest.mock('typeorm', () => ({
   OneToMany: jest.fn(() => () => {}),
   Check: jest.fn(() => () => {}),
 }));
-jest.mock('../../src/utils/dbTypes', () => ({
-  DateTimeColumn: jest.fn(() => () => {}),
-  JsonColumn: jest.fn(() => () => {}),
-  getDbType: jest.fn().mockReturnValue('sqlite'),
-  setDbType: jest.fn(),
-  getJsonType: jest.fn().mockReturnValue('simple-json'),
-  getDateTimeType: jest.fn().mockReturnValue('datetime'),
-  getJsonbIndexSql: jest.fn().mockReturnValue(''),
-}));
 
 const mockReq = (body: any = {}, params: any = {}, query: any = {}, user: any = { user_id: 'u1' }) => ({
   body,

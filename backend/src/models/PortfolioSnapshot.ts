@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 import { User } from './User';
 
@@ -67,13 +66,13 @@ export class PortfolioSnapshot {
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
   risk_free_rate!: number | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   asset_allocation!: Record<string, any> | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   sector_allocation!: Record<string, any> | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   holdings_snapshot!: Record<string, any> | null;
 
   @CreateDateColumn({ type: 'datetime' })

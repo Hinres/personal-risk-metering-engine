@@ -8,7 +8,6 @@ import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn,
   ManyToOne, JoinColumn, OneToMany, Index, DeleteDateColumn
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { User } from './User';
 import { Holding } from './Holding';
 import { VaRCalculation } from './VaRCalculation';
@@ -58,7 +57,7 @@ export class Portfolio {
     investment_goal?: string;
   };
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   statistics!: Record<string, any> | null;
 
   @Column({ type: 'varchar', length: 50, nullable: true })

@@ -94,7 +94,7 @@ PRME 是面向**个人投资者**的风险计量与组合分析系统，覆盖"*
 ## 四、工程质量
 
 - **测试**：119 个 Jest 套件 / 1660 个用例全量通过；Python 引擎 pytest 覆盖核心算法；关键数值（Kupiec 回测、HHI 集中度）经 QA 独立手工复算逐位对账
-- **数据库迁移**：TypeORM 迁移 001–009 全量管理，支持 SQLite（开发/测试）与 PostgreSQL（生产）双模式，全新建库与存量升级路径均验证
+- **数据库迁移**：TypeORM 迁移 001–009 全量管理，SQLite 单库（WAL 模式，REQ-DEC-20260926-001），全新建库与存量升级路径均验证
 - **安全基线**：全接口属主校验（越权 404）、输入校验单一事实源、XSS 输出转义、密钥环境变量化、SQL 参数化
 - **SIT / UAT**：v1.3.2 经 QA 系统集成测试（功能 8/8 + 数值对账）与 Req 用户验收测试（专项 48/48 + 回归无缺陷）双重复核通过
 
@@ -111,7 +111,7 @@ personal-risk-metering-engine/
 ├── calculation-engine/       # Python 计算引擎（NumPy / SciPy / Pandas）
 ├── frontend/web-admin/       # Web 管理后台（React 18 + Vite + Ant Design）
 ├── database/                 # 数据库初始化与迁移脚本
-└── docker-compose.yml        # 生产编排（PostgreSQL 模式）
+└── docker-compose.yml        # 生产编排（SQLite 单库模式）
 ```
 
 > 微信小程序代码位于独立目录维护（原生框架，40+ 页面），发布时通过微信开发者工具上传。

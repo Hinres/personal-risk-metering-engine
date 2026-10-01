@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, Index
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 
 @Entity('optimization_results')
@@ -41,16 +40,16 @@ export class OptimizationResult {
   @Column({ type: 'text', nullable: true })
   backtest_metrics!: string | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   current_portfolio!: Record<string, any> | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   optimized_portfolio!: Record<string, any> | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   suggestions!: Record<string, any>[] | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   backtest_data!: Record<string, any> | null;
 
   @Column({ type: 'text', nullable: true })
@@ -59,7 +58,7 @@ export class OptimizationResult {
   @Column({ type: 'text', nullable: true })
   compliance_note!: string | null; // 合规处理记录：过滤了哪些关键词等
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   risk_constraints!: Record<string, any> | null; // 用户风险偏好映射的约束
 
   @Column({ type: 'boolean', default: false })

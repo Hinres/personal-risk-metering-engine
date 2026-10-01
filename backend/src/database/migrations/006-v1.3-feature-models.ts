@@ -3,9 +3,9 @@
  * 文件: 006-v1.3-feature-models.ts
  * 范围: 新增 v1.3 功能所需表 + 扩展现有表 + 初始化基础数据
  * 日期: 2026-08-20
+ * 修订(2026-09-29): 移除 PostgreSQL 分支，SQLite 单库（REQ-DEC-20260926-001）
  */
 import { MigrationInterface, QueryRunner } from 'typeorm';
-import { getDbType } from '../../utils/dbTypes';
 import logger from '../../utils/logger';
 
 export class V13FeatureModelsMigration1718000000006 implements MigrationInterface {
@@ -13,33 +13,32 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.connect();
-    const dbType = getDbType();
     logger.info('[006] Starting v1.3 feature models migration...');
 
     try {
       // 1. 新增风险管理表
-      await this.createStopLossSuggestions(queryRunner, dbType);
-      await this.createRiskEventTables(queryRunner, dbType);
-      await this.createMarketVolatilityTables(queryRunner, dbType);
+      await this.createStopLossSuggestions(queryRunner);
+      await this.createRiskEventTables(queryRunner);
+      await this.createMarketVolatilityTables(queryRunner);
 
       // 2. 新增投资组合分析表
-      await this.createHoldingImportTables(queryRunner, dbType);
-      await this.createPortfolioTemplates(queryRunner, dbType);
-      await this.createAttributionResults(queryRunner, dbType);
-      await this.createOptimizationScenarios(queryRunner, dbType);
-      await this.createPortfolioAnalytics(queryRunner, dbType);
+      await this.createHoldingImportTables(queryRunner);
+      await this.createPortfolioTemplates(queryRunner);
+      await this.createAttributionResults(queryRunner);
+      await this.createOptimizationScenarios(queryRunner);
+      await this.createPortfolioAnalytics(queryRunner);
 
       // 3. 新增工具与设置表
-      await this.createVideoTutorials(queryRunner, dbType);
+      await this.createVideoTutorials(queryRunner);
 
       // 4. 确保被扩展的表存在（新数据库可能尚未创建这些实体表）
-      await this.ensureExistingTables(queryRunner, dbType);
+      await this.ensureExistingTables(queryRunner);
 
       // 5. 扩展现有表
-      await this.alterExistingTables(queryRunner, dbType);
+      await this.alterExistingTables(queryRunner);
 
       // 6. 初始化基础数据
-      await this.seedInitialData(queryRunner, dbType);
+      await this.seedInitialData(queryRunner);
 
       logger.info('[006] v1.3 feature models migration completed.');
     } catch (error: any) {
@@ -54,12 +53,12 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
   // ────────────────────────── 新表创建 ──────────────────────────
 
-  private async createStopLossSuggestions(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createStopLossSuggestions(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS stop_loss_suggestions (
-        suggestion_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        suggestion_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         portfolio_id ${uuid} NOT NULL REFERENCES portfolios(portfolio_id) ON DELETE CASCADE,
         user_id ${uuid} NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         confidence_level DECIMAL(5,4) NOT NULL,
@@ -78,13 +77,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_stop_loss_created ON stop_loss_suggestions(created_at)`);
   }
 
-  private async createRiskEventTables(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createRiskEventTables(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS risk_event_sources (
-        source_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        source_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         source_type VARCHAR(30) NOT NULL,
         provider VARCHAR(50) NOT NULL,
         name VARCHAR(100) NOT NULL,
@@ -99,7 +98,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS risk_events (
-        event_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        event_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         source_id ${uuid} NOT NULL REFERENCES risk_event_sources(source_id) ON DELETE CASCADE,
         source_type VARCHAR(30) NOT NULL,
         external_id VARCHAR(255),
@@ -123,7 +122,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS risk_event_impacts (
-        impact_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        impact_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         event_id ${uuid} NOT NULL REFERENCES risk_events(event_id) ON DELETE CASCADE,
         user_id ${uuid} NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         portfolio_id ${uuid} NOT NULL REFERENCES portfolios(portfolio_id) ON DELETE CASCADE,
@@ -146,13 +145,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_event_impact_read ON risk_event_impacts(user_id, is_read)`);
   }
 
-  private async createMarketVolatilityTables(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createMarketVolatilityTables(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS market_volatility_indices (
-        index_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        index_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         index_symbol VARCHAR(20) NOT NULL UNIQUE,
         index_name VARCHAR(100) NOT NULL,
         weight DECIMAL(5,4) NOT NULL DEFAULT 0,
@@ -165,7 +164,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS market_volatility_history (
-        history_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        history_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         index_symbol VARCHAR(20) NOT NULL,
         volatility DECIMAL(10,6) NOT NULL,
         percentile DECIMAL(5,4),
@@ -179,13 +178,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_volatility_history_date ON market_volatility_history(calculation_date)`);
   }
 
-  private async createHoldingImportTables(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createHoldingImportTables(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS holding_import_tasks (
-        task_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        task_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         portfolio_id ${uuid} NOT NULL REFERENCES portfolios(portfolio_id) ON DELETE CASCADE,
         user_id ${uuid} NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         file_name VARCHAR(255) NOT NULL,
@@ -209,7 +208,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS holding_import_rows (
-        row_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        row_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         task_id ${uuid} NOT NULL REFERENCES holding_import_tasks(task_id) ON DELETE CASCADE,
         row_number INT NOT NULL,
         raw_data TEXT,
@@ -224,13 +223,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_import_row_valid ON holding_import_rows(task_id, is_valid)`);
   }
 
-  private async createPortfolioTemplates(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createPortfolioTemplates(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS portfolio_templates (
-        template_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        template_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         name VARCHAR(100) NOT NULL,
         description TEXT,
         risk_level VARCHAR(20) NOT NULL,
@@ -251,13 +250,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_template_sort ON portfolio_templates(sort_order)`);
   }
 
-  private async createAttributionResults(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createAttributionResults(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS attribution_results (
-        attribution_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        attribution_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         portfolio_id ${uuid} NOT NULL REFERENCES portfolios(portfolio_id) ON DELETE CASCADE,
         user_id ${uuid} NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         benchmark_type VARCHAR(30) NOT NULL,
@@ -278,13 +277,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_attribution_created ON attribution_results(created_at)`);
   }
 
-  private async createOptimizationScenarios(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createOptimizationScenarios(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS optimization_scenarios (
-        scenario_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        scenario_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         name VARCHAR(100) NOT NULL,
         objective VARCHAR(30) NOT NULL,
         description TEXT,
@@ -300,13 +299,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_optimization_scenario_objective ON optimization_scenarios(objective)`);
   }
 
-  private async createPortfolioAnalytics(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createPortfolioAnalytics(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS portfolio_analytics (
-        analytics_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        analytics_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         portfolio_id ${uuid} NOT NULL REFERENCES portfolios(portfolio_id) ON DELETE CASCADE,
         user_id ${uuid} NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
         analysis_date DATE NOT NULL,
@@ -331,13 +330,13 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_analytics_portfolio_date ON portfolio_analytics(portfolio_id, analysis_date)`);
   }
 
-  private async createVideoTutorials(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async createVideoTutorials(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS video_tutorials (
-        video_id ${uuid} PRIMARY KEY ${dbType === 'sqlite' ? 'DEFAULT (lower(hex(randomblob(16))))' : 'DEFAULT gen_random_uuid()'},
+        video_id ${uuid} PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
         topic VARCHAR(50) NOT NULL,
         title VARCHAR(200) NOT NULL,
         description TEXT,
@@ -360,18 +359,16 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
   // ────────────────────────── 确保被扩展的表存在 ──────────────────────────
 
-  private async ensureExistingTables(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    await this.ensurePortfolioSnapshots(queryRunner, dbType);
-    await this.ensureOptimizationResults(queryRunner, dbType);
-    await this.ensureHelpContent(queryRunner, dbType);
+  private async ensureExistingTables(queryRunner: QueryRunner): Promise<void> {
+    await this.ensurePortfolioSnapshots(queryRunner);
+    await this.ensureOptimizationResults(queryRunner);
+    await this.ensureHelpContent(queryRunner);
   }
 
-  private async ensurePortfolioSnapshots(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const pkDefault = dbType === 'postgres'
-      ? 'DEFAULT gen_random_uuid()'
-      : 'DEFAULT (lower(hex(randomblob(16))))';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
+  private async ensurePortfolioSnapshots(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const pkDefault = 'DEFAULT (lower(hex(randomblob(16))))';
+    const now = 'CURRENT_TIMESTAMP';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS portfolio_snapshots (
@@ -402,13 +399,11 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_snapshot_date ON portfolio_snapshots(snapshot_date)`);
   }
 
-  private async ensureOptimizationResults(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const pkDefault = dbType === 'postgres'
-      ? 'DEFAULT gen_random_uuid()'
-      : 'DEFAULT (lower(hex(randomblob(16))))';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
-    const bool = dbType === 'postgres' ? 'BOOLEAN' : 'INTEGER';
+  private async ensureOptimizationResults(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const pkDefault = 'DEFAULT (lower(hex(randomblob(16))))';
+    const now = 'CURRENT_TIMESTAMP';
+    const bool = 'INTEGER';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS optimization_results (
@@ -438,13 +433,11 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_optimization_user ON optimization_results(user_id)`);
   }
 
-  private async ensureHelpContent(queryRunner: QueryRunner, dbType: string): Promise<void> {
-    const uuid = dbType === 'postgres' ? 'uuid' : 'varchar(36)';
-    const pkDefault = dbType === 'postgres'
-      ? 'DEFAULT gen_random_uuid()'
-      : 'DEFAULT (lower(hex(randomblob(16))))';
-    const now = dbType === 'postgres' ? 'CURRENT_TIMESTAMP' : 'CURRENT_TIMESTAMP';
-    const bool = dbType === 'postgres' ? 'BOOLEAN' : 'INTEGER';
+  private async ensureHelpContent(queryRunner: QueryRunner): Promise<void> {
+    const uuid = 'varchar(36)';
+    const pkDefault = 'DEFAULT (lower(hex(randomblob(16))))';
+    const now = 'CURRENT_TIMESTAMP';
+    const bool = 'INTEGER';
 
     await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS help_content (
@@ -474,11 +467,11 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
 
   // ────────────────────────── 扩展现有表 ──────────────────────────
 
-  private async alterExistingTables(queryRunner: QueryRunner, dbType: string): Promise<void> {
+  private async alterExistingTables(queryRunner: QueryRunner): Promise<void> {
     // portfolios
-    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'investment_goal', 'VARCHAR(50)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'risk_level', 'VARCHAR(20)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'template_id', dbType === 'postgres' ? 'UUID' : 'VARCHAR(36)', dbType);
+    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'investment_goal', 'VARCHAR(50)');
+    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'risk_level', 'VARCHAR(20)');
+    await this.addColumnIfNotExists(queryRunner, 'portfolios', 'template_id', 'VARCHAR(36)');
 
     // portfolio_snapshots
     const snapshotCols = [
@@ -486,26 +479,26 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
       'sortino_ratio', 'max_drawdown', 'calmar_ratio', 'treynor_ratio', 'beta', 'risk_free_rate'
     ];
     for (const col of snapshotCols) {
-      await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', col, 'DECIMAL(10,6)', dbType);
+      await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', col, 'DECIMAL(10,6)');
     }
-    await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', 'asset_allocation', 'TEXT', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', 'sector_allocation', 'TEXT', dbType);
+    await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', 'asset_allocation', 'TEXT');
+    await this.addColumnIfNotExists(queryRunner, 'portfolio_snapshots', 'sector_allocation', 'TEXT');
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS idx_snapshot_date ON portfolio_snapshots(snapshot_date)`);
 
     // optimization_results
-    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'objective_detail', 'VARCHAR(30)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'scoring_model', 'VARCHAR(50)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'filter_rules', 'TEXT', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'backtest_scenario_id', dbType === 'postgres' ? 'UUID' : 'VARCHAR(36)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'backtest_metrics', 'TEXT', dbType);
+    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'objective_detail', 'VARCHAR(30)');
+    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'scoring_model', 'VARCHAR(50)');
+    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'filter_rules', 'TEXT');
+    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'backtest_scenario_id', 'VARCHAR(36)');
+    await this.addColumnIfNotExists(queryRunner, 'optimization_results', 'backtest_metrics', 'TEXT');
 
     // help_content
-    await this.addColumnIfNotExists(queryRunner, 'help_content', 'video_id', dbType === 'postgres' ? 'UUID' : 'VARCHAR(36)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'help_content', 'thumbnail_url', 'VARCHAR(500)', dbType);
-    await this.addColumnIfNotExists(queryRunner, 'help_content', 'duration', 'INT', dbType);
+    await this.addColumnIfNotExists(queryRunner, 'help_content', 'video_id', 'VARCHAR(36)');
+    await this.addColumnIfNotExists(queryRunner, 'help_content', 'thumbnail_url', 'VARCHAR(500)');
+    await this.addColumnIfNotExists(queryRunner, 'help_content', 'duration', 'INT');
 
     // holdings
-    await this.addColumnIfNotExists(queryRunner, 'holdings', 'import_row_id', dbType === 'postgres' ? 'UUID' : 'VARCHAR(36)', dbType);
+    await this.addColumnIfNotExists(queryRunner, 'holdings', 'import_row_id', 'VARCHAR(36)');
   }
 
   private async addColumnIfNotExists(
@@ -513,27 +506,16 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     table: string,
     column: string,
     type: string,
-    dbType: string
   ): Promise<void> {
-    if (dbType === 'postgres') {
-      const res = await queryRunner.query(`
-        SELECT 1 FROM information_schema.columns
-        WHERE table_name = $1 AND column_name = $2
-      `, [table, column]);
-      if (!res || res.length === 0) {
-        await queryRunner.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}`);
-      }
-    } else {
-      const res = await queryRunner.query(`PRAGMA table_info("${table}")`);
-      if (!res.find((r: any) => r.name === column)) {
-        await queryRunner.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}`);
-      }
+    const res = await queryRunner.query(`PRAGMA table_info("${table}")`);
+    if (!res.find((r: any) => r.name === column)) {
+      await queryRunner.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${type}`);
     }
   }
 
   // ────────────────────────── 初始化数据 ──────────────────────────
 
-  private async seedInitialData(queryRunner: QueryRunner, dbType: string): Promise<void> {
+  private async seedInitialData(queryRunner: QueryRunner): Promise<void> {
     // 默认波动率指数
     const indices = [
       { symbol: '000300.SH', name: '沪深300', weight: 0.4 },
@@ -546,9 +528,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         SELECT 1 FROM market_volatility_indices WHERE index_symbol = '${idx.symbol}'
       `);
       if (!exists || exists.length === 0) {
-        const id = dbType === 'postgres'
-          ? 'gen_random_uuid()'
-          : 'lower(hex(randomblob(16)))';
+        const id = 'lower(hex(randomblob(16)))';
         await queryRunner.query(`
           INSERT INTO market_volatility_indices (index_id, index_symbol, index_name, weight, source, is_active)
           VALUES (${id}, '${idx.symbol}', '${idx.name}', ${idx.weight}, 'default', true)
@@ -570,9 +550,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         SELECT 1 FROM optimization_scenarios WHERE objective = '${s.objective}'
       `);
       if (!exists || exists.length === 0) {
-        const id = dbType === 'postgres'
-          ? 'gen_random_uuid()'
-          : 'lower(hex(randomblob(16)))';
+        const id = 'lower(hex(randomblob(16)))';
         await queryRunner.query(`
           INSERT INTO optimization_scenarios (scenario_id, name, objective, description, disclaimer, is_active)
           VALUES (${id}, '${s.name}', '${s.objective}', '${s.desc}', '本优化场景仅供参考，不构成投资建议。', true)
@@ -625,9 +603,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
     for (const t of templates) {
       const exists = await queryRunner.query(`SELECT 1 FROM portfolio_templates WHERE name = '${t.name}'`);
       if (!exists || exists.length === 0) {
-        const id = dbType === 'postgres'
-          ? 'gen_random_uuid()'
-          : 'lower(hex(randomblob(16)))';
+        const id = 'lower(hex(randomblob(16)))';
         await queryRunner.query(`
           INSERT INTO portfolio_templates (
             template_id, name, description, risk_level, asset_allocation, sector_allocation,
@@ -700,9 +676,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         SELECT 1 FROM video_tutorials WHERE topic = '${v.topic}' AND title = '${v.title}'
       `);
       if (!exists || exists.length === 0) {
-        const id = dbType === 'postgres'
-          ? 'gen_random_uuid()'
-          : 'lower(hex(randomblob(16)))';
+        const id = 'lower(hex(randomblob(16)))';
         await queryRunner.query(`
           INSERT INTO video_tutorials (
             video_id, topic, title, description, video_url, duration, thumbnail_url,
@@ -730,9 +704,7 @@ export class V13FeatureModelsMigration1718000000006 implements MigrationInterfac
         SELECT 1 FROM risk_event_sources WHERE source_type = '${s.type}' AND provider = '${s.provider}'
       `);
       if (!exists || exists.length === 0) {
-        const id = dbType === 'postgres'
-          ? 'gen_random_uuid()'
-          : 'lower(hex(randomblob(16)))';
+        const id = 'lower(hex(randomblob(16)))';
         await queryRunner.query(`
           INSERT INTO risk_event_sources (source_id, source_type, provider, name, is_active)
           VALUES (${id}, '${s.type}', '${s.provider}', '${s.name}', true)

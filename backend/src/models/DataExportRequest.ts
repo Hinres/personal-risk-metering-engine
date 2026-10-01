@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-09
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index } from 'typeorm';
-import { JsonColumn, DateTimeColumn } from '../utils/dbTypes';
 import { User } from './User';
 
 @Entity('data_export_requests')
@@ -24,7 +23,7 @@ export class DataExportRequest {
   @Column({ type: 'varchar', length: 20 })
   format!: string;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   include_tables!: string[] | null;
 
   @Column({ type: 'varchar', length: 500, nullable: true })
@@ -42,10 +41,10 @@ export class DataExportRequest {
   @Column({ type: 'text', nullable: true })
   error_message!: string | null;
 
-  @DateTimeColumn()
+  @Column({ type: 'datetime' })
   expires_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   generated_at!: Date | null;
 
   @CreateDateColumn({ type: 'datetime' })

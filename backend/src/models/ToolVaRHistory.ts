@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index
 } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 
 @Entity('tool_var_history')
 export class ToolVaRHistory {
@@ -45,13 +44,13 @@ export class ToolVaRHistory {
   @Column({ type: 'decimal', precision: 10, scale: 6, nullable: true })
   volatility!: number | null;
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   holdings!: Record<string, any>[] | null; // 临时持仓快照
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   components!: Record<string, any>[] | null; // VaR成分
 
-  @JsonColumn({ nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   risk_factors!: Record<string, any>[] | null; // 风险因子
 
   @Column({ type: 'int', nullable: true })

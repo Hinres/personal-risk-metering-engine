@@ -1,6 +1,6 @@
 /**
  * Jest 全局测试设置
- * P1-6: 确保测试环境默认使用 SQLite，避免实体装饰器在加载时错误解析类型
+ * SQLite 单库：每个 worker 使用独立的数据库文件
  */
 
 // Jest 兼容: Node.js 20+ 中 path-scurry 依赖 fs.native
@@ -8,12 +8,6 @@ const fsModule = require('fs');
 if (!fsModule.native) {
   Object.defineProperty(fsModule, 'native', { value: fsModule, writable: false });
 }
-
-import { setDbType } from '../src/utils/dbTypes';
-
-// 强制测试环境使用 SQLite
-process.env.DB_TYPE = 'sqlite';
-setDbType('sqlite');
 
 // JWT 密钥（测试环境必需）
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-for-ci-only';

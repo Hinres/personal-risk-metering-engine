@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-18
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Check } from 'typeorm';
-import { JsonColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 import { User } from './User';
 
@@ -30,8 +29,8 @@ export class VaRCalculation {
   @Column({ type: 'decimal', precision: 18, scale: 6, nullable: true }) expected_shortfall!: number | null;
   @Column({ type: 'decimal', precision: 18, scale: 6, nullable: true }) volatility!: number | null;
   @Column({ type: 'integer', nullable: true }) calculation_time_ms!: number | null;
-  @JsonColumn({ default: '[]' }) var_components!: any[];
-  @JsonColumn({ default: '[]' }) risk_factors!: any[];
+  @Column({ type: 'simple-json', default: '[]' }) var_components!: any[];
+  @Column({ type: 'simple-json', default: '[]' }) risk_factors!: any[];
   @Column({ type: 'varchar', length: 20, default: 'completed' }) status!: string;
   @Column({ type: 'text', nullable: true }) error_message!: string | null;
   @Column({ type: 'varchar', length: 50, nullable: true }) data_source!: string | null;

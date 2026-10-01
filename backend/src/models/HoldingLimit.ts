@@ -5,7 +5,6 @@
  * 最后更新: 2026-06-18
  */
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Index, Check } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 import { Portfolio } from './Portfolio';
 import { User } from './User';
 
@@ -50,6 +49,6 @@ export class HoldingLimit {
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   updated_at!: Date | null;
 }

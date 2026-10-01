@@ -7,7 +7,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, Index
 } from 'typeorm';
-import { DateTimeColumn } from '../utils/dbTypes';
 
 export type PartitionTableType = 'audit_logs' | 'monitor_snapshots';
 
@@ -38,6 +37,6 @@ export class PartitionMetadata {
   @CreateDateColumn({ type: 'datetime' })
   created_at!: Date;
 
-  @DateTimeColumn({ nullable: true })
+  @Column({ type: 'datetime', nullable: true })
   archived_at!: Date | null;
 }
